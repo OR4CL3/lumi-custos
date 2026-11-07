@@ -1,0 +1,131 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Lumi Studio — Custo por peça</title><style>
+    @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&display=swap');
+    :root { --ink:#f4f0e8; --muted:#9ba39a; --bg:#101310; --panel:#191d18; --panel-2:#20261f; --line:#30382e; --lime:#d6f36a; --lime-dark:#94ad2c; --orange:#ff8a5c; --cyan:#89d8d0; --danger:#ff716a; --shadow:0 24px 60px rgba(0,0,0,.22); }
+    * { box-sizing:border-box; }
+    html { background:var(--bg); }
+    body { margin:0; color:var(--ink); background: radial-gradient(circle at 88% 4%, rgba(214,243,106,.10), transparent 25rem), radial-gradient(circle at 4% 75%, rgba(137,216,208,.06), transparent 24rem), var(--bg); font:15px/1.5 'DM Sans',sans-serif; min-height:100vh; }
+    body:before { content:""; position:fixed; inset:0; opacity:.025; pointer-events:none; background-image:linear-gradient(90deg,#fff 1px,transparent 1px),linear-gradient(#fff 1px,transparent 1px); background-size:42px 42px; mask-image:linear-gradient(to bottom,black,transparent 75%); }
+    .shell { width:min(1380px,calc(100% - 40px)); margin:auto; padding:34px 0 60px; }
+    header { display:flex; justify-content:space-between; align-items:flex-end; gap:24px; border-bottom:1px solid var(--line); padding-bottom:27px; margin-bottom:26px; }
+    .eyebrow { color:var(--lime); text-transform:uppercase; letter-spacing:.18em; font:500 12px 'DM Mono',monospace; }
+    h1,h2,h3,p { margin:0; } h1 { margin-top:10px; font:800 clamp(42px,6vw,80px)/.88 'Barlow Condensed',sans-serif; letter-spacing:-.035em; max-width:650px; text-transform:uppercase; } h1 span { color:var(--lime); }
+    .intro { color:var(--muted); max-width:450px; margin-top:16px; font-size:16px; }
+    .header-mark { width:74px; height:74px; flex:none; border:1px solid var(--lime); color:var(--lime); display:grid; place-items:center; transform:rotate(45deg); position:relative; margin:0 16px 14px 0; }
+    .header-mark:after { content:""; position:absolute; inset:8px; border:1px solid var(--orange); }
+    .header-mark b { transform:rotate(-45deg); font:700 26px 'DM Mono',monospace; }
+    .grid { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(360px,.8fr); gap:22px; align-items:start; }
+    .stack { display:grid; gap:22px; }
+    .panel { background:linear-gradient(145deg,rgba(32,38,31,.96),rgba(22,26,22,.96)); border:1px solid var(--line); border-radius:4px; padding:25px; box-shadow:var(--shadow); }
+    .panel-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:22px; }
+    .panel-heading h2 { font:700 27px/1 'Barlow Condensed',sans-serif; text-transform:uppercase; letter-spacing:.02em; }
+    .panel-heading p { color:var(--muted); font-size:13px; margin-top:5px; }
+    .badge { border:1px solid var(--line); color:var(--muted); padding:5px 8px; font:500 10px 'DM Mono',monospace; text-transform:uppercase; white-space:nowrap; }
+    .badge.live { color:var(--lime); border-color:rgba(214,243,106,.4); }
+    label { color:#c8cec4; display:block; font-size:12px; margin-bottom:7px; }
+    input,select { width:100%; color:var(--ink); background:#111510; border:1px solid #3a4436; border-radius:3px; padding:11px 12px; font:500 14px 'DM Mono',monospace; outline:none; transition:border .2s,box-shadow .2s; }
+    input:focus,select:focus { border-color:var(--lime); box-shadow:0 0 0 3px rgba(214,243,106,.1); }
+    input[type=number] { appearance:textfield; } input::-webkit-outer-spin-button,input::-webkit-inner-spin-button { appearance:none; margin:0; }
+    .fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px 14px; }
+    .fields.three { grid-template-columns:repeat(3,minmax(0,1fr)); }
+    .field.wide { grid-column:1/-1; }
+    .section-label { color:var(--lime); font:500 11px 'DM Mono',monospace; letter-spacing:.13em; text-transform:uppercase; border-top:1px solid var(--line); padding-top:20px; margin:22px 0 16px; }
+    .section-label:first-child { border-top:0; padding-top:0; margin-top:0; }
+    .unit { position:relative; } .unit input { padding-right:42px; } .unit span { position:absolute; right:11px; bottom:11px; color:var(--muted); font:11px 'DM Mono',monospace; }
+    .select-helper { display:flex; align-items:center; gap:8px; margin-top:8px; }
+    .select-helper button { padding:7px 9px; font-size:10px; }
+    .composition-box { border-top:1px solid var(--line); padding-top:20px; margin-top:22px; }
+    .composition-box .section-label { border-top:0; padding-top:0; margin-top:0; }
+    .composition-controls { display:flex; align-items:flex-end; gap:10px; flex-wrap:wrap; }
+    .composition-controls .field { flex:1 1 260px; }
+    .composition-hint { flex:1 1 320px; color:var(--muted); font-size:12px; line-height:1.4; }
+    .composition-list { display:grid; gap:8px; margin-top:14px; }
+    .composition-row { display:grid; grid-template-columns:minmax(0,1fr) 150px auto; gap:8px; align-items:end; }
+    .composition-row .unit input { width:100%; }
+    .composition-row button { padding:9px 10px; font-size:10px; }
+    .composition-status { color:var(--muted); font:11px 'DM Mono',monospace; margin-top:11px; min-height:17px; }
+    @media(max-width:560px) { .composition-row { grid-template-columns:1fr; } }
+    .dropzone { border:1px dashed #68775d; padding:22px; text-align:center; background:rgba(214,243,106,.025); cursor:pointer; transition:.2s; }
+    .dropzone:hover,.dropzone.drag { border-color:var(--lime); background:rgba(214,243,106,.08); }
+    .dropzone strong { color:var(--lime); font:600 18px 'Barlow Condensed',sans-serif; text-transform:uppercase; display:block; }
+    .dropzone small { display:block; color:var(--muted); margin-top:5px; }
+    .file-status { color:var(--cyan); font:12px 'DM Mono',monospace; margin-top:12px; min-height:18px; }
+    .actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:22px; }
+    .tabs { display:flex; gap:8px; margin:24px 0 18px; border-bottom:1px solid var(--line); }
+    .tab-button { background:transparent; color:var(--muted); border:0; border-bottom:2px solid transparent; border-radius:0; padding:11px 4px 12px; }
+    .tab-button.active { color:var(--lime); border-bottom-color:var(--lime); }
+    .hidden { display:none !important; }
+    .filament-layout { display:grid; grid-template-columns:minmax(0,1fr) minmax(280px,.7fr); gap:18px; }
+    .profile-list { display:grid; gap:10px; margin-top:16px; }
+    .profile-item { display:flex; justify-content:space-between; align-items:center; gap:14px; border:1px solid var(--line); background:var(--panel-2); padding:13px; }
+    .profile-item.selected { border-color:var(--lime); }
+    .profile-item strong { display:block; }
+    .profile-item small { display:block; color:var(--muted); font:11px 'DM Mono',monospace; margin-top:4px; }
+    .profile-item a { color:var(--cyan); text-decoration:none; }
+    .profile-actions { display:flex; gap:7px; flex-wrap:wrap; justify-content:flex-end; }
+    .profile-actions button { padding:8px 10px; font-size:10px; }
+    @media(max-width:700px) { .filament-layout { grid-template-columns:1fr; } }
+    button { cursor:pointer; border:1px solid transparent; border-radius:3px; padding:12px 16px; font:700 12px 'DM Mono',monospace; text-transform:uppercase; letter-spacing:.04em; transition:transform .15s,background .15s,border .15s; }
+    button:hover { transform:translateY(-1px); } button.primary { background:var(--lime); color:#101310; } button.secondary { background:transparent; color:var(--ink); border-color:#4e5a49; } button.danger { color:var(--danger); background:transparent; border-color:rgba(255,113,106,.35); }
+    .result-panel { position:sticky; top:18px; overflow:hidden; }
+    .result-panel:after { content:""; position:absolute; top:0; right:0; width:120px; height:120px; background:var(--lime); opacity:.06; clip-path:polygon(100% 0,100% 100%,0 0); }
+    .hero-result { background:var(--lime); color:#101310; padding:22px; margin:0 -25px 24px; position:relative; }
+    .hero-result .kicker { font:500 11px 'DM Mono',monospace; text-transform:uppercase; letter-spacing:.13em; }
+    .hero-result .price { font:800 clamp(48px,6vw,72px)/.9 'Barlow Condensed',sans-serif; letter-spacing:-.04em; margin-top:8px; }
+    .hero-result .sub { font-size:12px; margin-top:8px; opacity:.7; }
+    .breakdown { display:grid; gap:0; margin-top:10px; }
+    .breakdown-row { display:flex; justify-content:space-between; gap:14px; padding:10px 0; border-bottom:1px solid var(--line); color:#bcc5b8; font-size:13px; }
+    .breakdown-row strong { color:var(--ink); font:500 13px 'DM Mono',monospace; } .breakdown-row.total { padding-top:17px; color:var(--lime); border-bottom:0; font-weight:700; } .breakdown-row.total strong { color:var(--lime); font-size:17px; }
+    .mini-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:22px 0 4px; } .mini-stat { background:var(--panel-2); padding:12px 10px; border-left:2px solid var(--orange); } .mini-stat:nth-child(2) { border-color:var(--cyan); } .mini-stat:nth-child(3) { border-color:var(--lime); } .mini-stat small { display:block; color:var(--muted); font-size:10px; text-transform:uppercase; } .mini-stat b { display:block; margin-top:4px; font:500 14px 'DM Mono',monospace; }
+    .history { display:grid; gap:9px; max-height:320px; overflow:auto; } .history-empty { color:var(--muted); border:1px dashed var(--line); padding:17px; text-align:center; font-size:13px; }
+    .history-item { display:flex; align-items:center; justify-content:space-between; gap:15px; background:#141814; border:1px solid var(--line); padding:12px; } .history-item .name { font-weight:600; } .history-item small { display:block; color:var(--muted); font:11px 'DM Mono',monospace; margin-top:3px; } .history-item strong { color:var(--lime); font:500 14px 'DM Mono',monospace; white-space:nowrap; }
+    .footer-note { color:var(--muted); font-size:11px; margin-top:18px; line-height:1.55; } .footer-note code { color:var(--cyan); font-family:'DM Mono',monospace; }
+    .info-note { background:rgba(214,243,106,.06); border-left:2px solid var(--lime); padding:12px 14px; color:var(--muted); font-size:12px; margin-bottom:18px; display:flex; justify-content:space-between; gap:16px; align-items:center; } .info-note strong { color:var(--ink); display:block; margin-bottom:3px; } .info-note output { color:var(--lime); font:500 14px 'DM Mono',monospace; white-space:nowrap; }
+    .line-list { display:grid; gap:8px; margin-top:12px; }
+    .line-row { display:grid; grid-template-columns:minmax(0,1fr) 90px 130px auto; gap:8px; align-items:end; }
+    .line-row.fixed { grid-template-columns:minmax(0,1fr) 150px auto; }
+    .line-row button { padding:9px 10px; font-size:10px; }
+    .line-head { display:grid; grid-template-columns:minmax(0,1fr) 90px 130px 86px; gap:8px; color:var(--muted); font:500 10px 'DM Mono',monospace; text-transform:uppercase; margin-top:12px; }
+    .line-head.fixed { grid-template-columns:minmax(0,1fr) 150px 86px; }
+    .line-row.kit { grid-template-columns:minmax(0,1fr) minmax(0,1.1fr) 96px 72px 78px 72px auto; }
+    .line-head.kit { grid-template-columns:minmax(0,1fr) minmax(0,1.1fr) 96px 72px 78px 72px 86px; }
+    .check { display:flex; gap:10px; align-items:center; cursor:pointer; margin:0; } .check input { width:auto; margin:0; accent-color:var(--lime); }
+    .line-total { color:var(--muted); font:11px 'DM Mono',monospace; margin-top:10px; }
+    .hint { color:var(--muted); font-size:11px; margin-top:6px; line-height:1.4; }
+    .hint b { color:var(--orange); font-weight:600; }
+    .breakdown-row .cols { display:flex; gap:14px; } .breakdown-row .cols strong { min-width:86px; text-align:right; }
+    .breakdown-row.head { color:var(--muted); font:500 10px 'DM Mono',monospace; text-transform:uppercase; padding:4px 0 8px; } .breakdown-row.head .cols span { min-width:86px; text-align:right; }
+    .breakdown-row.price { color:var(--ink); } .breakdown-row.price strong { color:var(--lime); }
+    .breakdown-row.good strong { color:var(--lime); } .breakdown-row.bad strong { color:var(--danger); }
+    .breakdown-sep { height:14px; }
+    .market-box { border-top:1px solid var(--line); margin-top:18px; padding-top:16px; }
+    @media(max-width:560px) { .line-row,.line-row.fixed,.line-row.kit { grid-template-columns:1fr 1fr; } .line-head { display:none; } }
+    .toast { position:fixed; right:20px; bottom:20px; background:var(--lime); color:#101310; padding:13px 17px; border-radius:3px; font:600 12px 'DM Mono',monospace; box-shadow:var(--shadow); transform:translateY(20px); opacity:0; pointer-events:none; transition:.25s; z-index:5; } .toast.show { transform:translateY(0); opacity:1; }
+    @media(max-width:900px) { .grid { grid-template-columns:1fr; } .result-panel { position:relative; top:auto; } }
+    @media(max-width:560px) { .shell { width:min(100% - 24px,1380px); padding-top:24px; } header { align-items:flex-start; } .header-mark { display:none; } .fields,.fields.three { grid-template-columns:1fr; } .panel { padding:18px; } .hero-result { margin-left:-18px; margin-right:-18px; } .mini-stats { grid-template-columns:1fr; } }
+  </style></head><body><div class="shell"><header><div><div class="eyebrow">Lumi Studio · Impressão 3D</div><h1>Custo <span>por peça</span></h1><p class="intro">Custo cru e custo com mão de obra. Sem preço de venda, lucro ou taxas.</p></div></header><main><section class="panel"><div class="panel-heading"><h2>01 — Material e mesa</h2></div><p class="hint">Informe consumo e tempo da mesa inteira. Inclua suportes e purga no peso ou no desperdício extra, sem contar duas vezes. Para misturas, use um preço médio ponderado do filamento.</p><div class="fields"><div class="field"><label for="length">Comprimento de filamento</label><div class="unit"><input id="length" type="number" min="0" step="any" value="1240"><span>mm</span></div></div><div class="field"><label for="weight">Peso informado (prioridade sobre comprimento)</label><div class="unit"><input id="weight" type="number" min="0" step="any" value=""><span>g</span></div></div><div class="field"><label for="priceKg">Preço do filamento</label><div class="unit"><input id="priceKg" type="number" min="0" step="any" value="130"><span>R$/kg</span></div></div><div class="field"><label for="diameter">Diâmetro</label><div class="unit"><input id="diameter" type="number" min="0" step="any" value="1.75"><span>mm</span></div></div><div class="field"><label for="density">Densidade</label><div class="unit"><input id="density" type="number" min="0" step="any" value="1.24"><span>g/cm³</span></div></div><div class="field"><label for="waste">Desperdício extra não incluído no peso</label><div class="unit"><input id="waste" type="number" min="0" step="any" value="0"><span>g</span></div></div><div class="field"><label for="printHours">Tempo da mesa</label><div class="unit"><input id="printHours" type="number" min="0" step="any" value="0"><span>h</span></div></div><div class="field"><label for="printMinutes">Minutos adicionais</label><div class="unit"><input id="printMinutes" type="number" min="0" step="any" value="10"><span>min</span></div></div><div class="field"><label for="quantity">Peças por mesa</label><div class="unit"><input id="quantity" type="number" min="0" step="any" value="1"><span>un</span></div></div></div><div class="section-label">Máquina, energia e produção</div><div class="fields"><div class="field"><label for="power">Consumo médio</label><div class="unit"><input id="power" type="number" min="0" step="any" value="390"><span>W</span></div></div><div class="field"><label for="kwh">Energia</label><div class="unit"><input id="kwh" type="number" min="0" step="any" value="0.8"><span>R$/kWh</span></div></div><div class="field"><label for="printerPrice">Impressora</label><div class="unit"><input id="printerPrice" type="number" min="0" step="any" value="3000"><span>R$</span></div></div><div class="field"><label for="upgradesValue">Upgrades / acessórios</label><div class="unit"><input id="upgradesValue" type="number" min="0" step="any" value="0"><span>R$</span></div></div><div class="field"><label for="lifeHours">Vida útil</label><div class="unit"><input id="lifeHours" type="number" min="0" step="any" value="5000"><span>h</span></div></div><div class="field"><label for="hoursDay">Horas produtivas por dia</label><div class="unit"><input id="hoursDay" type="number" min="0" step="any" value="8"><span>h</span></div></div><div class="field"><label for="daysMonth">Dias produtivos por mês</label><div class="unit"><input id="daysMonth" type="number" min="0" step="any" value="22"><span>dias</span></div></div><div class="field"><label for="failure">Probabilidade de falha por tentativa</label><div class="unit"><input id="failure" type="number" min="0" step="any" value="10"><span>%</span></div></div></div><p class="hint">Falha significa perda completa de material, energia e desgaste da tentativa. A reserva é base ÷ (1 − falha) − base. Fixos e mão de obra não são multiplicados por essa reserva.</p><div class="section-label">Custos fixos mensais</div><div class="fields"><div class="field"><label for="fixedStl">Assinaturas de STL</label><div class="unit"><input id="fixedStl" type="number" min="0" step="any" value="50"><span>R$/mês</span></div></div><div class="field"><label for="fixedInternet">Internet da produção</label><div class="unit"><input id="fixedInternet" type="number" min="0" step="any" value="20"><span>R$/mês</span></div></div><div class="field"><label for="fixedSpace">Espaço / aluguel</label><div class="unit"><input id="fixedSpace" type="number" min="0" step="any" value="0"><span>R$/mês</span></div></div><div class="field"><label for="fixedSoftware">Software</label><div class="unit"><input id="fixedSoftware" type="number" min="0" step="any" value="0"><span>R$/mês</span></div></div><div class="field"><label for="fixedMaintenance">Manutenção / reposição</label><div class="unit"><input id="fixedMaintenance" type="number" min="0" step="any" value="30"><span>R$/mês</span></div></div><div class="field"><label for="fixedOther">Outros (DAS, despesas gerais)</label><div class="unit"><input id="fixedOther" type="number" min="0" step="any" value="150"><span>R$/mês</span></div></div></div><div class="section-label">Mão de obra</div><div class="fields"><div class="field"><label for="hourlyRate">Mão de obra</label><div class="unit"><input id="hourlyRate" type="number" min="0" step="any" value="31.25"><span>R$/h</span></div></div><div class="field"><label for="plateHandlingMinutes">Preparação e retirada por mesa</label><div class="unit"><input id="plateHandlingMinutes" type="number" min="0" step="any" value="0"><span>min</span></div></div><div class="field"><label for="finishMinutesPerPiece">Acabamento por peça</label><div class="unit"><input id="finishMinutesPerPiece" type="number" min="0" step="any" value="0.5"><span>min</span></div></div></div><p class="hint">Valor padrão: R$ 5.000 ÷ 160 h = R$ 31,25/h. Preparação é por mesa; acabamento, por peça.</p></section><section class="panel"><div class="panel-heading"><h2>02 — Resultado por peça</h2></div><p id="error" role="alert" class="hint"></p><div class="fields"><div class="hero-result" style="margin:0"><div>Sem mão de obra</div><strong class="price" id="raw">—</strong></div><div class="hero-result" style="margin:0"><div>Com mão de obra</div><strong class="price" id="withLabor">—</strong></div></div><div id="summary" class="hint"></div><div id="breakdown" class="breakdown"></div><p class="footer-note">Valores por peça; cálculos mantêm precisão interna e a tela arredonda para centavos. Não inclui embalagem, impostos, taxas comerciais ou lucro. O rateio depende das horas produtivas informadas.</p></section></main></div><script>
+// ==== SIMPLE ENGINE START
+function computeSimple(p){
+ const n=k=>{const v=Number(p[k]);if(!Number.isFinite(v)||v<0)throw Error('Use somente números válidos e não negativos.');return v;};
+ const quantity=n('quantity'),life=n('lifeHours'),productive=n('hoursDay')*n('daysMonth'),f=n('failure')/100;
+ if(!Number.isInteger(quantity)||quantity<1)throw Error('Informe uma quantidade inteira de peças maior que zero.');
+ if(life<=0||productive<=0)throw Error('Vida útil e horas produtivas devem ser maiores que zero.');
+ if(f>=1)throw Error('A probabilidade de falha deve ser menor que 100%.');
+ if(n('diameter')<=0||n('density')<=0)throw Error('Diâmetro e densidade devem ser maiores que zero.');
+ const hours=n('printHours')+n('printMinutes')/60;
+ const grams=n('weight')>0?n('weight'):n('length')*Math.PI*(n('diameter')/2)**2/1000*n('density');
+ const material=(grams+n('waste'))/1000*n('priceKg'),energy=n('power')/1000*hours*n('kwh'),wear=(n('printerPrice')+n('upgradesValue'))/life*hours;
+ const fixedMonthly=['fixedStl','fixedInternet','fixedSpace','fixedSoftware','fixedMaintenance','fixedOther'].reduce((s,k)=>s+n(k),0);
+ const fixed=fixedMonthly/productive*hours,base=material+energy+wear,failure=base/(1-f)-base;
+ const labor=n('hourlyRate')*(n('plateHandlingMinutes')+n('finishMinutesPerPiece')*quantity)/60;
+ const plate={material,energy,wear,fixed,failure,labor};const piece=Object.fromEntries(Object.entries(plate).map(([k,v])=>[k,v/quantity]));
+ const raw=(base+failure+fixed)/quantity;
+ return {grams,hours,quantity,fixedMonthly,productive,plate,piece,raw,withLabor:raw+piece.labor};
+}
+// ==== SIMPLE ENGINE END
+const money=v=>v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+function render(){try{const p=Object.fromEntries([...document.querySelectorAll('input')].map(e=>[e.id,e.value]));const r=computeSimple(p);document.getElementById('error').textContent='';document.getElementById('raw').textContent=money(r.raw);document.getElementById('withLabor').textContent=money(r.withLabor);document.getElementById('summary').textContent=`Mesa: ${r.grams.toLocaleString('pt-BR',{maximumFractionDigits:3})} g + ${Number(p.waste)} g extras · ${r.quantity} peça(s) · fixos ${money(r.fixedMonthly)}/mês ÷ ${r.productive} h`;
+const row=(label,a,b)=>`<div class="breakdown-row"><span>${label}</span><div class="cols"><strong>${a}</strong><strong>${b}</strong></div></div>`;
+let out=row('Componente / por peça','Sem mão de obra','Com mão de obra');for(const [k,l] of Object.entries({material:'Material + desperdício',energy:'Energia',wear:'Desgaste da máquina',fixed:'Rateio de custos fixos',failure:'Reserva de falhas: base ÷ (1 − f) − base'}))out+=row(l,money(r.piece[k]),money(r.piece[k]));out+=row('Preparação + acabamento',money(0),money(r.piece.labor));out+=row('Custo total por peça',money(r.raw),money(r.withLabor));document.getElementById('breakdown').innerHTML=out;
+}catch(e){document.getElementById('error').textContent=e.message;document.getElementById('raw').textContent='—';document.getElementById('withLabor').textContent='—';document.getElementById('summary').textContent='';document.getElementById('breakdown').innerHTML='';}}
+document.querySelectorAll('input').forEach(e=>e.addEventListener('input',render));render();
+</script></body></html>
