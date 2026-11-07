@@ -130,6 +130,20 @@
     .gcode-chip .sw { display:inline-block; width:10px; height:10px; border-radius:50%; border:1px solid #0006; margin-right:4px; vertical-align:-1px; }
     .gcode-chip button { padding:6px 10px; font-size:10px; margin-left:auto; }
     .gcode-chip .warn { color:var(--orange); }
+    #lista .peca-row { cursor:pointer; }
+    #lista .peca-row:hover { border-color:var(--lime); }
+    #lista .peca-row:focus-visible { outline:2px solid var(--lime); outline-offset:2px; }
+    #lista .cols strong { min-width:78px; }
+    #lista .inferido { color:var(--orange); }
+    #pecaModal { position:fixed; inset:0; z-index:40; background:rgba(8,10,8,.72); display:flex; align-items:flex-start; justify-content:center; padding:28px 16px; overflow:auto; }
+    #pecaModal[hidden] { display:none !important; }
+    #pecaModal .modal { width:min(760px,100%); max-height:calc(100vh - 48px); display:flex; flex-direction:column; background:linear-gradient(145deg,rgba(32,38,31,.98),rgba(22,26,22,.98)); border:1px solid var(--line); border-radius:4px; padding:22px; box-shadow:var(--shadow); margin:auto; }
+    .modal-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px 18px; margin:8px 0 18px; overflow:auto; min-height:0; }
+    .modal-grid .wide { grid-column:1/-1; }
+    .modal-grid small { display:block; color:var(--muted); font:500 10px 'DM Mono',monospace; text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px; }
+    .modal-grid b { color:var(--ink); font-weight:500; font-size:14px; word-break:break-word; }
+    #modalPreco { font:800 clamp(40px,5vw,64px)/.9 'Barlow Condensed',sans-serif; color:var(--lime); letter-spacing:-.03em; }
+    @media(max-width:560px) { .modal-grid { grid-template-columns:1fr; } #lista .breakdown-row .cols { grid-template-columns:repeat(2,1fr); } }
   </style></head><body><div id="loginScreen" style="position:fixed;inset:0;z-index:999;display:flex;align-items:center;justify-content:center;background:var(--bg);color:var(--ink);padding:20px">
 <form id="loginForm" style="max-width:340px;width:100%;display:flex;flex-direction:column;gap:12px">
 <div class="eyebrow">Lumi Studio</div><h1 style="margin:0">Entrar</h1>
@@ -175,7 +189,7 @@
 <div class="breakdown" id="vendaInfo"></div>
 <p class="hint">Markup sobre o custo: quanto você soma em cima do custo. Margem sobre a venda: quanto do preço final é lucro. Ex.: markup de 30% = margem de 23,1%. Não inclui impostos nem taxas de marketplace.</p></section>
 <section class="panel" id="savePanel"><div class="panel-heading"><h2>03 — Salvar peça</h2></div>
-<p class="hint">Salva na planilha os custos calculados acima e os parâmetros usados.</p>
+<p class="hint">Salva na planilha os custos calculados acima, o markup, o preço de venda e os parâmetros usados.</p>
 <div class="fields">
 <div class="field"><label for="sNome">Nome da peça</label><input id="sNome" type="text" data-save></div>
 <div class="field"><label for="sLink">Link do arquivo</label><input id="sLink" type="url" data-save></div>
@@ -185,13 +199,25 @@
 </div>
 <div id="viewPecas" class="view" role="tabpanel" hidden><section class="panel" id="listPanel"><div class="panel-heading"><h2>Peças salvas</h2></div>
 <div class="list-tools"><input id="busca" type="search" placeholder="Buscar por nome, material ou obs..."><button id="btnReload" type="button" class="secondary">Atualizar lista</button></div>
-<p id="listMsg" class="hint"></p><div id="lista" class="breakdown"></div></section></div>
+<p id="listMsg" class="hint"></p><div id="lista" class="breakdown"></div><p id="listaNota" class="hint"></p></section></div>
 <div id="viewConfig" class="view" role="tabpanel" hidden><section class="panel"><div class="panel-heading"><h2>Configurações</h2></div>
 <p class="hint">Estes valores ficam na aba Parametros da planilha e valem para você e sua esposa. Use vírgula ou ponto.</p>
 <form id="cfgForm" novalidate><div id="cfgGrupos"></div>
 <div class="cfg-group"><h3>Novo material</h3><div class="fields"><div class="field"><label for="novoMatNome">Nome (ex.: PLA Silk)</label><input id="novoMatNome" type="text"></div><div class="field"><label for="novoMatPreco">Preço</label><div class="unit"><input id="novoMatPreco" type="text" inputmode="decimal"><span>R$/kg</span></div></div></div></div>
 <div class="cfg-actions"><button id="btnCfgSalvar" type="submit" class="primary">Salvar configurações</button><button id="btnCfgRecarregar" type="button" class="secondary">Recarregar da planilha</button><span id="cfgMsg" class="hint" role="status"></span></div></form></section></div>
-</main></div></div>
+</main></div>
+<div id="pecaModal" hidden><div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitulo">
+<div class="panel-heading"><h2 id="modalTitulo">Peça</h2><button id="modalFechar" type="button" class="secondary">Fechar</button></div>
+<p id="modalAviso" class="hint"></p>
+<div id="modalCampos" class="modal-grid"></div>
+<div class="cfg-group"><h3>Markup desta peça</h3>
+<div class="fields"><div class="field"><label for="modalMarkup">Markup sobre o custo</label><div class="unit"><input id="modalMarkup" type="number" min="0" step="any" autocomplete="off"><span>%</span></div></div>
+<div class="field"><label for="modalPreco">Preço de venda</label><div id="modalPreco">—</div></div></div>
+<div id="modalVenda" class="breakdown"></div>
+<p class="cfg-actions"><button id="modalSalvar" type="button" class="primary">Salvar markup</button> <span id="modalMsg" class="hint" role="status"></span></p>
+<p class="hint">O preço é o custo com mão de obra salvo, mais este markup. A planilha só guarda o markup e o preço; não recalcula a peça.</p>
+</div></div></div>
+</div>
 <script>
 const API_URL='https://script.google.com/macros/s/AKfycbzvTJXCRwL-m22dl2y0iEdw6n7qt-afL95FLyeF4F1KAqgFfyTQKVgwEuCOuZqwNarSkA/exec';
 const KEY_LS='lumiChave',TAB_LS='lumiAba',PAR_SS='lumiParams';
@@ -276,17 +302,17 @@ function guardada(){return localStorage.getItem(KEY_LS)||sessionStorage.getItem(
 function limparChave(){localStorage.removeItem(KEY_LS);sessionStorage.removeItem(KEY_LS);sessionStorage.removeItem(PAR_SS);chave='';params=null;}
 async function api(body){const res=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(Object.assign({chave},body))});return res.json();}
 function chaveRuim(j){return !j.ok&&/chave/i.test(j.erro||'');}
-function sessaoExpirada(){limparChave();mostrarLogin('Senha inválida ou alterada. Entre novamente.');}
+function sessaoExpirada(){limparChave();fecharPeca();mostrarLogin('Senha inválida ou alterada. Entre novamente.');}
 function mostrarLogin(msg){$('appRoot').hidden=true;$('loginScreen').style.display='flex';$('loginErro').textContent=msg||'';$('loginSenha').value='';$('loginSenha').focus();}
 
 $('loginForm').onsubmit=async e=>{e.preventDefault();const senha=$('loginSenha').value;if(!senha)return;$('btnLogin').disabled=true;$('loginErro').textContent='Verificando...';
  try{chave=senha;const j=await api({acao:'login'});if(!j.ok){chave='';$('loginErro').textContent='Senha incorreta.';return;}
   limparChave();chave=senha;($('loginLembrar').checked?localStorage:sessionStorage).setItem(KEY_LS,senha);$('loginErro').textContent='';mostrarApp();
  }catch(err){chave='';$('loginErro').textContent='Não foi possível conectar: '+err.message;}finally{$('btnLogin').disabled=false;}};
-$('btnSair').onclick=()=>{limparChave();pecas=[];listaSuja=true;$('lista').innerHTML='';mostrarLogin();};
+$('btnSair').onclick=()=>{limparChave();pecas=[];listaSuja=true;fecharPeca();$('lista').innerHTML='';$('listaNota').textContent='';mostrarLogin();};
 
 // ---- parâmetros ----
-function aplicarParams(lista){params=lista;sessionStorage.setItem(PAR_SS,JSON.stringify(lista));montarMateriais();montarConfig();$('markupPct').value=markupInicial();setMarkup($('markupPct').value,false);render();}
+function aplicarParams(lista){params=lista;sessionStorage.setItem(PAR_SS,JSON.stringify(lista));montarMateriais();montarConfig();$('markupPct').value=markupInicial();setMarkup($('markupPct').value,false);render();if(pecas.length)mostrar();}
 async function carregarParams(forcar){
  if(!forcar){const c=sessionStorage.getItem(PAR_SS);if(c){try{aplicarParams(JSON.parse(c));return;}catch(e){}}}
  $('error').textContent='Carregando parâmetros...';
@@ -376,24 +402,89 @@ $('sPreco').addEventListener('input',e=>{e.target.dataset.manual=e.target.value=
 function markupInicial(){const ls=localStorage.getItem(MK_LS);if(ls!==null)return ls;const P=params?mapaParams(params):{};return Number.isFinite(P.markup_padrao)?String(P.markup_padrao):'30';}
 CALC_IDS.forEach(k=>{$(k).addEventListener('input',render);$(k).addEventListener('change',render);});
 
+function precoSalvo(){const m=markup();if(!Number.isFinite(m))throw Error('Informe um markup válido (0 ou mais) antes de salvar.');
+ const manual=$('sPreco').dataset.manual==='1';
+ const v=manual?numBR($('sPreco').value):Math.round(precoCom(ultimo,m)*100)/100;
+ if(!Number.isFinite(v)||v<0)throw Error('Preço de venda inválido.');
+ return {markup:m,preco:Math.round(v*100)/100};}
 async function salvar(){const msg=$('saveMsg');try{const nome=$('sNome').value.trim();if(!nome)throw Error('Informe o nome da peça.');render();if(!ultimo)throw Error('Corrija o cálculo antes de salvar.');
- const r=ultimo;$('btnSave').disabled=true;msg.textContent='Salvando...';
- const body={acao:'salvar',nome,material:$('material').value,link_arquivo:$('sLink').value.trim(),obs:[$('sObs').value.trim(),gcodeInfo?'Arquivo G-code: '+gcodeInfo.nome:''].filter(Boolean).join(' · '),preco_venda:$('sPreco').value};
+ const r=ultimo,venda=precoSalvo();$('btnSave').disabled=true;msg.textContent='Salvando...';
+ const body={acao:'salvar',nome,material:$('material').value,link_arquivo:$('sLink').value.trim(),obs:[$('sObs').value.trim(),gcodeInfo?'Arquivo G-code: '+gcodeInfo.nome:''].filter(Boolean).join(' · '),preco_venda:venda.preco,markup_pct:venda.markup};
  ['gramas','horas','min_mao_obra','custo_material','custo_energia','custo_desgaste','custo_fixos','reserva_falha','custo_sem_mo','custo_mao_obra','custo_com_mo','parametros_usados'].forEach(k=>body[k]=r[k]);
- body.parametros_usados=Object.assign({},r.parametros_usados,{markup_pct:markup()});
+ body.parametros_usados=Object.assign({},r.parametros_usados,{markup_pct:venda.markup});
  const j=await api(body);if(chaveRuim(j))return sessaoExpirada();if(!j.ok)throw Error(j.erro||'Erro ao salvar.');
- msg.innerHTML=`Salvo (${esc(j.id)}): sem mão de obra ${money(r.custo_sem_mo)}, com mão de obra ${money(r.custo_com_mo)}. <a href="#pecas" class="link">Ver nas peças salvas</a>`;
+ msg.innerHTML=`Salvo (${esc(j.id)}): markup ${fmtNum(venda.markup)}%, venda ${money(venda.preco)}. <a href="#pecas" class="link">Ver nas peças salvas</a>`;
  ['sNome','sLink','sObs','sPreco'].forEach(i=>$(i).value='');$('sPreco').dataset.manual='';renderVenda();listaSuja=true;
 }catch(e){msg.textContent='Erro: '+e.message;}finally{$('btnSave').disabled=false;}}
 $('btnSave').onclick=salvar;
 
-// ---- lista ----
+// ---- lista e detalhe ----
+const ROTULO_PECA={id:'ID',data:'Data',nome:'Nome',material:'Material',gramas:'Gramas',horas:'Horas de impressão',min_mao_obra:'Minutos de mão de obra',link_arquivo:'Link do arquivo',obs:'Observações',custo_material:'Custo de material',custo_energia:'Custo de energia',custo_desgaste:'Custo de desgaste',custo_fixos:'Custo fixo rateado',reserva_falha:'Reserva de falha',custo_sem_mo:'Custo sem mão de obra',custo_mao_obra:'Custo de mão de obra',custo_com_mo:'Custo com mão de obra',preco_venda:'Preço de venda salvo',markup_pct:'Markup salvo',parametros_usados:'Parâmetros usados'};
+const DINHEIRO=new Set(['custo_material','custo_energia','custo_desgaste','custo_fixos','reserva_falha','custo_sem_mo','custo_mao_obra','custo_com_mo','preco_venda']);
+function celNum(v){if(typeof v==='number')return Number.isFinite(v)?v:NaN;if(v===''||v==null)return NaN;return numBR(v);}
+function markupPadrao(){const P=params?mapaParams(params):{};return Number.isFinite(P.markup_padrao)&&P.markup_padrao>=0?P.markup_padrao:30;}
+function infoPeca(p){if(p.markup_pct===''||p.markup_pct==null)return {markup:markupPadrao(),salvo:false};const n=celNum(p.markup_pct);if(!Number.isFinite(n)||n<0)return {markup:markupPadrao(),salvo:false};return {markup:n,salvo:true};}
+function precoPeca(p,info){const custo=celNum(p.custo_com_mo);if(info.salvo){const pv=celNum(p.preco_venda);if(Number.isFinite(pv))return pv;}return Number.isFinite(custo)?custo*(1+info.markup/100):NaN;}
+function margemDe(m){return m/(100+m)*100;}
 async function carregar(){$('listMsg').textContent='Carregando...';try{const j=await api({acao:'listar'});if(chaveRuim(j))return sessaoExpirada();if(!j.ok)throw Error(j.erro||'Erro');pecas=j.pecas||[];$('listMsg').textContent='';mostrar();}catch(e){$('listMsg').textContent='Não foi possível carregar: '+e.message;}}
-function fmt(v){const n=Number(v);return v===''||v==null||!isFinite(n)?'—':money(n);}
+function fmt(v){const n=celNum(v);return Number.isFinite(n)?money(n):'—';}
 function mostrar(){const q=$('busca').value.trim().toLowerCase();const f=pecas.filter(p=>!q||[p.nome,p.material,p.obs,p.id].join(' ').toLowerCase().includes(q));
- const row=(a,b,c,d)=>`<div class="breakdown-row"><span>${a}</span><div class="cols"><strong>${b}</strong><strong>${c}</strong><strong>${d}</strong></div></div>`;
- $('lista').innerHTML=f.length?row('Peça','Sem MO','Com MO','Venda')+f.map(p=>row(`${p.link_arquivo?`<a href="${esc(p.link_arquivo)}" target="_blank" rel="noopener">${esc(p.nome)}</a>`:esc(p.nome)} <small>· ${esc(p.material)} · ${esc(p.data)}${p.obs?' · '+esc(p.obs):''}</small>`,fmt(p.custo_sem_mo),fmt(p.custo_com_mo),fmt(p.preco_venda))).join(''):'<p class="hint">Nenhuma peça encontrada.</p>';}
+ const cols=vals=>`<div class="cols">${vals.map(v=>`<strong>${v}</strong>`).join('')}</div>`;
+ const head=`<div class="breakdown-row head"><span>Peça</span>${cols(['Sem MO','Com MO','Markup','Preço de venda'])}</div>`;
+ $('lista').innerHTML=f.length?head+f.map(p=>{const info=infoPeca(p),pv=precoPeca(p,info);
+  const nome=`${p.link_arquivo?`<a href="${esc(p.link_arquivo)}" target="_blank" rel="noopener">${esc(p.nome)}</a>`:esc(p.nome)} <small>· ${esc(p.id)} · ${esc(p.material)} · ${esc(p.data)}${p.obs?' · '+esc(p.obs):''}</small>`;
+  const mk=info.salvo?esc(fmtNum(info.markup)+'%'):`<span class="inferido" title="Markup padrão, ainda não salvo nesta peça">${esc(fmtNum(info.markup)+'%')}</span>`;
+  return `<div class="breakdown-row peca-row" data-id="${esc(p.id)}" role="button" tabindex="0" aria-label="Abrir ${esc(p.nome)}"><span>${nome}</span>${cols([fmt(p.custo_sem_mo),fmt(p.custo_com_mo),mk,Number.isFinite(pv)?money(pv):'—'])}</div>`;
+ }).join(''):'<p class="hint">Nenhuma peça encontrada.</p>';
+ $('listaNota').textContent=f.some(p=>!infoPeca(p).salvo)?'Em laranja, a peça ainda não tem markup salvo: a página usa o markup padrão sobre o custo com mão de obra.':'';}
 $('btnReload').onclick=carregar;$('busca').oninput=mostrar;
+$('lista').addEventListener('click',e=>{if(e.target.closest('a'))return;const row=e.target.closest('.peca-row');if(row)abrirPeca(row.dataset.id);});
+$('lista').addEventListener('keydown',e=>{if(e.key!=='Enter'&&e.key!==' ')return;const row=e.target.closest('.peca-row');if(!row)return;e.preventDefault();abrirPeca(row.dataset.id);});
+
+let pecaAberta=null,focoAntes=null;
+function fmtCampo(k,v){
+ if(v===''||v==null)return '—';
+ if(k==='link_arquivo')return `<a href="${esc(v)}" target="_blank" rel="noopener">${esc(v)}</a>`;
+ if(k==='parametros_usados'){let o=v;if(typeof v==='string'){try{o=JSON.parse(v);}catch(err){return esc(v);}}if(o&&typeof o==='object')return Object.entries(o).map(([a,b])=>`${esc(a)}: ${esc(b)}`).join('<br>')||'—';}
+ if(DINHEIRO.has(k)){const n=celNum(v);return Number.isFinite(n)?money(n):esc(v);}
+ if(k==='markup_pct'){const n=celNum(v);return Number.isFinite(n)?fmtNum(n)+'%':esc(v);}
+ if(k==='gramas'){const n=celNum(v);return Number.isFinite(n)?fmtNum(n)+' g':esc(v);}
+ if(k==='horas'){const n=celNum(v);return Number.isFinite(n)?fmtNum(n)+' h':esc(v);}
+ if(k==='min_mao_obra'){const n=celNum(v);return Number.isFinite(n)?fmtNum(n)+' min':esc(v);}
+ return esc(v);
+}
+function pintarCampos(p){
+ const ordem=Object.keys(ROTULO_PECA).filter(k=>k in p||k==='markup_pct'||k==='preco_venda');
+ Object.keys(p).forEach(k=>{if(!ordem.includes(k))ordem.push(k);});
+ $('modalCampos').innerHTML=ordem.map(k=>{const v=fmtCampo(k,p[k]);const wide=k==='parametros_usados'||k==='obs'||k==='link_arquivo'?' wide':'';return `<div class="${wide.trim()}"><small>${esc(ROTULO_PECA[k]||k)}</small><b>${v}</b></div>`;}).join('');
+}
+function atualizarModal(){const p=pecaAberta;if(!p)return;const m=numBR($('modalMarkup').value),custo=celNum(p.custo_com_mo);
+ if(!Number.isFinite(m)||m<0||!Number.isFinite(custo)){$('modalPreco').textContent='—';$('modalVenda').innerHTML=!Number.isFinite(custo)?'<p class="hint err">Esta peça não tem custo com mão de obra salvo.</p>':'';$('modalSalvar').disabled=true;return;}
+ const pv=custo*(1+m/100),margem=margemDe(m);
+ const row=(l,a)=>`<div class="breakdown-row"><span>${l}</span><div class="cols"><strong>${a}</strong></div></div>`;
+ $('modalPreco').textContent=money(pv);
+ $('modalVenda').innerHTML=row('Custo com mão de obra',money(custo))+row('Markup sobre o custo',fmtNum(m)+'%')+row('Margem sobre a venda',fmtNum(+margem.toFixed(1))+'%')+row('Lucro por peça',money(pv-custo));
+ $('modalSalvar').disabled=false;}
+function abrirPeca(id){const p=pecas.find(x=>String(x.id)===String(id));if(!p)return;pecaAberta=p;focoAntes=document.activeElement;
+ const info=infoPeca(p);$('modalTitulo').textContent=p.nome||'Peça';pintarCampos(p);
+ $('modalAviso').textContent=info.salvo?'':`Sem markup salvo nesta peça. O campo começa no markup padrão (${fmtNum(info.markup)}%) aplicado sobre o custo com mão de obra. Salvar grava o markup e o preço nesta linha.`;
+ $('modalMsg').textContent='';$('modalMarkup').value=String(info.markup);$('pecaModal').hidden=false;atualizarModal();$('modalMarkup').focus();}
+function fecharPeca(){if($('pecaModal').hidden)return;$('pecaModal').hidden=true;pecaAberta=null;if(focoAntes&&focoAntes.focus)focoAntes.focus();}
+async function salvarMarkup(){const p=pecaAberta;if(!p)return;const msg=$('modalMsg');try{
+ const m=numBR($('modalMarkup').value),custo=celNum(p.custo_com_mo);
+ if(!Number.isFinite(m)||m<0)throw Error('Informe um markup válido (0 ou mais).');
+ if(!Number.isFinite(custo))throw Error('Esta peça não tem custo com mão de obra salvo.');
+ const preco=Math.round(custo*(1+m/100)*100)/100;
+ $('modalSalvar').disabled=true;msg.textContent='Salvando...';
+ const j=await api({acao:'atualizar_markup',id:p.id,markup_pct:m,preco_venda:preco});
+ if(chaveRuim(j))return sessaoExpirada();if(!j.ok)throw Error(j.erro||'Erro ao salvar.');
+ p.markup_pct=j.markup_pct;p.preco_venda=j.preco_venda;mostrar();pintarCampos(p);$('modalAviso').textContent='';msg.textContent='Markup e preço salvos nesta peça.';
+}catch(e){msg.textContent='Erro: '+e.message;}finally{if(pecaAberta)atualizarModal();}}
+$('modalFechar').onclick=fecharPeca;
+$('pecaModal').addEventListener('click',e=>{if(e.target===$('pecaModal'))fecharPeca();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('pecaModal').hidden)fecharPeca();});
+$('modalMarkup').addEventListener('input',atualizarModal);
+$('modalSalvar').onclick=salvarMarkup;
 
 // ---- abas ----
 const HASH={calc:'#calculadora',pecas:'#pecas',config:'#configuracoes'};
