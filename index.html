@@ -130,6 +130,9 @@
     .gcode-chip .sw { display:inline-block; width:10px; height:10px; border-radius:50%; border:1px solid #0006; margin-right:4px; vertical-align:-1px; }
     .gcode-chip button { padding:6px 10px; font-size:10px; margin-left:auto; }
     .gcode-chip .warn { color:var(--orange); }
+    .plate-list { display:grid; gap:6px; margin-top:8px; }
+    .plate-list .check { font-size:12px; color:#bcc5b8; }
+    #summary .extra { display:block; margin-top:6px; }
     #lista .peca-row { cursor:pointer; }
     #lista .peca-row:hover { border-color:var(--lime); }
     #lista .peca-row:focus-visible { outline:2px solid var(--lime); outline-offset:2px; }
@@ -151,7 +154,7 @@
 <label style="display:flex;gap:8px;align-items:center"><input id="loginLembrar" type="checkbox" style="width:auto"> Lembrar neste navegador</label>
 <button id="btnLogin" type="submit" class="primary">Entrar</button><p id="loginErro" role="alert" class="err" style="min-height:1.2em;margin:0"></p>
 </form></div>
-<div id="appRoot" hidden><div class="shell"><header><div><div class="eyebrow">Lumi Studio · Impressão 3D</div><h1>Custo <span>por peça</span></h1><p class="intro">Custo cru e custo com mão de obra. Sem preço de venda, lucro ou taxas.</p></div></header>
+<div id="appRoot" hidden><div class="shell"><header><div><div class="eyebrow">Lumi Studio · Impressão 3D</div><h1>Custo <span>por peça</span></h1><p class="intro">Custo da peça e preço de venda. O markup sobre o custo continua sendo a base do preço.</p></div></header>
 <nav class="viewtabs" role="tablist">
 <button type="button" role="tab" id="tabCalc" data-view="calc">Calculadora</button>
 <button type="button" role="tab" id="tabPecas" data-view="pecas">Peças salvas</button>
@@ -163,11 +166,11 @@
 <label class="dropzone" id="gcodeDrop" for="gcodeFile"><strong>Arquivo G-code (opcional)</strong><small>Arraste ou clique para escolher um .gcode ou .gcode.3mf. O arquivo é lido só neste navegador e não é enviado para lugar nenhum.</small>
 <input id="gcodeFile" type="file" accept=".gcode,.gco,.g,.3mf,.gcode.3mf" style="display:none"></label>
 <div id="gcodeChip" class="gcode-chip" hidden></div>
-<p class="hint">Informe consumo e tempo da mesa inteira; o custo é dividido pelas peças da mesa. Inclua suportes e purga no peso.</p>
+<p class="hint">Informe consumo e tempo da mesa inteira; o custo é dividido pelas peças da mesa. Em um .3mf com várias placas, peso e tempo são a soma das placas marcadas e cada peça divide esse total por placas × peças por mesa. Inclua suportes e purga no peso.</p>
 <div class="fields">
 <div class="field"><label for="material">Material</label><select id="material"></select></div>
 <div class="field"><label for="weight">Peso (prioridade sobre comprimento)</label><div class="unit"><input id="weight" type="number" min="0" step="any" value=""><span>g</span></div></div>
-<div class="field"><label for="length">Comprimento de filamento</label><div class="unit"><input id="length" type="number" min="0" step="any" value="1240"><span>mm</span></div></div>
+<div class="field"><label for="length">Comprimento de filamento</label><div class="unit"><input id="length" type="number" min="0" step="any" value=""><span>mm</span></div></div>
 <div class="field"><label for="waste">Desperdício extra</label><div class="unit"><input id="waste" type="number" min="0" step="any" value="0"><span>g</span></div></div>
 <div class="field"><label for="diameter">Diâmetro</label><div class="unit"><input id="diameter" type="number" min="0" step="any" value="1.75"><span>mm</span></div></div>
 <div class="field"><label for="density">Densidade</label><div class="unit"><input id="density" type="number" min="0" step="any" value="1.24"><span>g/cm³</span></div></div>
@@ -175,19 +178,28 @@
 <div class="field"><label for="printMinutes">Minutos adicionais</label><div class="unit"><input id="printMinutes" type="number" min="0" step="any" value="10"><span>min</span></div></div>
 <div class="field"><label for="quantity">Peças por mesa</label><div class="unit"><input id="quantity" type="number" min="1" step="1" value="1"><span>un</span></div></div>
 <div class="field"><label for="plateHandlingMinutes">Preparação e retirada por mesa</label><div class="unit"><input id="plateHandlingMinutes" type="number" min="0" step="any" value="0"><span>min</span></div></div>
-<div class="field"><label for="finishMinutesPerPiece">Acabamento por peça</label><div class="unit"><input id="finishMinutesPerPiece" type="number" min="0" step="any" value="0.5"><span>min</span></div></div>
-</div></section>
+<div class="field"><label for="finishMinutesPerPiece">Acabamento por peça</label><div class="unit"><input id="finishMinutesPerPiece" type="number" min="0" step="any" value="5"><span>min</span></div></div>
+</div>
+<p id="pesoFonte" class="hint"></p></section>
 <section class="panel"><div class="panel-heading"><h2>Parâmetros fixos</h2><a href="#configuracoes" id="editarParams">Editar</a></div><div id="resumoParams" class="summary"></div></section>
 <section class="panel"><div class="panel-heading"><h2>02 — Resultado por peça</h2></div><p id="error" role="alert" class="hint err"></p>
 <div class="fields"><div class="hero-result" style="margin:0"><div>Sem mão de obra</div><strong class="price" id="raw">—</strong></div><div class="hero-result" style="margin:0"><div>Com mão de obra</div><strong class="price" id="withLabor">—</strong></div></div>
 <div id="summary" class="hint"></div><div id="breakdown" class="breakdown"></div>
-<p class="footer-note">A página é o único lugar que calcula; a planilha guarda os valores calculados aqui. Não inclui embalagem, impostos, taxas comerciais ou lucro.</p></section>
+<p class="footer-note">A página é o único lugar que calcula; a planilha guarda os valores calculados aqui. A reserva de falha é o fator de tentativas 1/(1 − f) sobre material, energia, desgaste e custos fixos. Embalagem, impostos e taxas entram no preço de venda.</p></section>
 <section class="panel" id="vendaPanel"><div class="panel-heading"><h2>Preço de venda</h2></div>
 <div class="fields"><div class="field"><label for="markupRange">Markup sobre o custo</label><input id="markupRange" type="range" min="0" max="300" step="5" value="30" style="padding:0;accent-color:var(--lime)"></div>
 <div class="field"><label for="markupPct">Markup (%)</label><div class="unit"><input id="markupPct" type="number" min="0" step="any" value="30"><span>%</span></div></div></div>
-<div class="hero-result" style="margin:18px 0 0"><div>Preço de venda (custo com mão de obra + markup)</div><strong class="price" id="precoVenda">—</strong><div class="sub" id="precoSemMo"></div></div>
+<p class="section-label">Taxas e embalagem (opcionais)</p>
+<div class="fields">
+<div class="field"><label for="embalagemRs">Embalagem por peça</label><div class="unit"><input id="embalagemRs" type="number" min="0" step="any" value="0"><span>R$</span></div></div>
+<div class="field"><label for="taxaFixaVenda">Taxa fixa de venda</label><div class="unit"><input id="taxaFixaVenda" type="number" min="0" step="any" value="0"><span>R$</span></div></div>
+<div class="field"><label for="taxaMarketplace">Taxa de marketplace</label><div class="unit"><input id="taxaMarketplace" type="number" min="0" step="any" value="0"><span>%</span></div></div>
+<div class="field"><label for="taxaCartao">Taxa de cartão</label><div class="unit"><input id="taxaCartao" type="number" min="0" step="any" value="0"><span>%</span></div></div>
+<div class="field"><label for="impostoPct">Impostos</label><div class="unit"><input id="impostoPct" type="number" min="0" step="any" value="0"><span>%</span></div></div>
+</div>
+<div class="hero-result" style="margin:18px 0 0"><div>Preço de venda</div><strong class="price" id="precoVenda">—</strong><div class="sub" id="precoSemMo"></div></div>
 <div class="breakdown" id="vendaInfo"></div>
-<p class="hint">Markup sobre o custo: quanto você soma em cima do custo. Margem sobre a venda: quanto do preço final é lucro. Ex.: markup de 30% = margem de 23,1%. Não inclui impostos nem taxas de marketplace.</p></section>
+<p class="hint">O markup incide sobre o custo com mão de obra. Depois a página soma embalagem e taxa fixa e divide por (1 − taxas percentuais). Com todas as taxas em zero, o preço é o custo mais o markup. A margem efetiva é o lucro dividido pelo preço final. Ex.: markup de 30% e taxas zero = margem de 23,1%.</p></section>
 <section class="panel" id="savePanel"><div class="panel-heading"><h2>03 — Salvar peça</h2></div>
 <p class="hint">Salva na planilha os custos calculados acima, o markup, o preço de venda e os parâmetros usados.</p>
 <div class="fields">
@@ -215,7 +227,7 @@
 <div class="field"><label for="modalPreco">Preço de venda</label><div id="modalPreco">—</div></div></div>
 <div id="modalVenda" class="breakdown"></div>
 <p class="cfg-actions"><button id="modalSalvar" type="button" class="primary">Salvar markup</button> <span id="modalMsg" class="hint" role="status"></span></p>
-<p class="hint">O preço é o custo com mão de obra salvo, mais este markup. A planilha só guarda o markup e o preço; não recalcula a peça.</p>
+<p class="hint">O preço aplica o markup sobre o custo com mão de obra salvo e, se a peça guardou taxas, as mesmas taxas. A planilha só guarda o markup e o preço; não recalcula a peça.</p>
 </div></div></div>
 </div>
 <script>
@@ -226,12 +238,24 @@ const esc=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const money=v=>v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const numBR=v=>{const t=String(v??'').trim().replace(/\s/g,'');if(t==='')return NaN;if(t.includes(','))return Number(t.replace(/\./g,'').replace(',','.'));if(/^\d{1,3}(\.\d{3})+$/.test(t))return Number(t.replace(/\./g,''));return Number(t);};
 const FIXOS=['kwh','potencia_w','impressora_rs','upgrades_rs','vida_util_h','fixos_mensais_rs','horas_produtivas_mes','taxa_falha','mao_obra_rs_h'];
-const GRUPOS=[['Energia / Impressora',['kwh','potencia_w','impressora_rs','upgrades_rs','vida_util_h']],['Custos fixos',['fixos_mensais_rs','horas_produtivas_mes']],['Falhas',['taxa_falha']],['Mão de obra',['mao_obra_rs_h']],['Preço de venda',['markup_padrao']]];
-const ROTULO={kwh:'Energia',potencia_w:'Consumo médio da impressora',impressora_rs:'Impressora',upgrades_rs:'Upgrades / acessórios',vida_util_h:'Vida útil',fixos_mensais_rs:'Custos fixos mensais',horas_produtivas_mes:'Horas produtivas por mês',taxa_falha:'Taxa de falha (0,1 = 10%)',mao_obra_rs_h:'Mão de obra',markup_padrao:'Markup padrão sobre o custo'};
+const TAXA_IDS=[['embalagem_rs','embalagemRs'],['taxa_fixa_venda_rs','taxaFixaVenda'],['taxa_marketplace_pct','taxaMarketplace'],['taxa_cartao_pct','taxaCartao'],['imposto_pct','impostoPct']];
+const GRUPOS=[['Energia / Impressora',['kwh','potencia_w','impressora_rs','upgrades_rs','vida_util_h']],['Custos fixos',['fixos_mensais_rs','horas_produtivas_mes']],['Falhas',['taxa_falha']],['Mão de obra',['mao_obra_rs_h']],['Preço de venda',['markup_padrao','embalagem_rs','taxa_fixa_venda_rs','taxa_marketplace_pct','taxa_cartao_pct','imposto_pct']]];
+const ROTULO={kwh:'Energia',potencia_w:'Consumo médio da impressora',impressora_rs:'Impressora',upgrades_rs:'Upgrades / acessórios',vida_util_h:'Vida útil',fixos_mensais_rs:'Custos fixos mensais',horas_produtivas_mes:'Horas produtivas por mês',taxa_falha:'Taxa de falha (0,1 = 10%)',mao_obra_rs_h:'Mão de obra',markup_padrao:'Markup padrão sobre o custo',embalagem_rs:'Embalagem por peça',taxa_fixa_venda_rs:'Taxa fixa de venda',taxa_marketplace_pct:'Taxa de marketplace',taxa_cartao_pct:'Taxa de cartão',imposto_pct:'Impostos sobre a venda'};
 
 // ==== MOTOR DE CÁLCULO (único lugar que calcula) ====
 function isMaterial(p){return p.unidade==='R$/kg';}
 function mapaParams(lista){const m={};(lista||[]).forEach(p=>m[p.chave]=Number(p.valor));return m;}
+function fmtPctCurto(v){const n=Math.round(v*10)/10;return Number.isInteger(n)?String(n):n.toFixed(1).replace('.',',');}
+function rotuloReserva(f){const extra=!(f>0)?0:(1/(1-f)-1)*100;return `Reserva de falha (${fmtPctCurto(f*100)}% de falha → +${fmtPctCurto(extra)}%)`;}
+function taxasDe(obj){const num=k=>{const v=Number(obj?.[k]??0);return Number.isFinite(v)&&v>=0?v:0;};return {embalagem_rs:num('embalagem_rs'),taxa_fixa_venda_rs:num('taxa_fixa_venda_rs'),taxa_marketplace_pct:num('taxa_marketplace_pct'),taxa_cartao_pct:num('taxa_cartao_pct'),imposto_pct:num('imposto_pct')};}
+function precoDeVenda(custo,markupPct,taxas){
+ const m=Number(markupPct);if(!Number.isFinite(m)||m<0)throw Error('Informe um markup válido (0 ou mais).');
+ const t=taxasDe(taxas),pct=(t.taxa_marketplace_pct+t.taxa_cartao_pct+t.imposto_pct)/100;
+ if(pct>=1)throw Error('A soma das taxas percentuais (marketplace, cartão e imposto) precisa ser menor que 100%.');
+ const antes=custo*(1+m/100),fixosTaxa=t.embalagem_rs+t.taxa_fixa_venda_rs,preco=(antes+fixosTaxa)/(1-pct),taxas_pct_rs=preco*pct;
+ const lucro=preco-custo-fixosTaxa-taxas_pct_rs,margem=preco>0?lucro/preco*100:0;
+ return Object.assign({antes,preco,pct:pct*100,taxas_pct_rs,taxas_rs:fixosTaxa+taxas_pct_rs,lucro,margem},t);
+}
 function calcPeca(inp,P){
  const n=k=>{const v=Number(inp[k]);if(!Number.isFinite(v)||v<0)throw Error('Use somente números válidos e não negativos.');return v;};
  for(const k of FIXOS)if(!Number.isFinite(P[k]))throw Error('Parâmetro ausente na planilha: '+k);
@@ -239,14 +263,25 @@ function calcPeca(inp,P){
  const q=n('quantity');if(!Number.isInteger(q)||q<1)throw Error('Informe uma quantidade inteira de peças maior que zero.');
  if(P.vida_util_h<=0||P.horas_produtivas_mes<=0)throw Error('Vida útil e horas produtivas devem ser maiores que zero.');
  if(P.taxa_falha<0||P.taxa_falha>=1)throw Error('A taxa de falha deve estar entre 0 e 1.');
- const gMesa=(n('weight')>0?n('weight'):n('length')*Math.PI*(n('diameter')/2)**2/1000*n('density'))+n('waste');
- const hMesa=n('printHours')+n('printMinutes')/60;
- const gramas=gMesa/q,horas=hMesa/q,min_mao_obra=(n('plateHandlingMinutes')+n('finishMinutesPerPiece')*q)/q;
+ const placasRaw=inp.plates===undefined||inp.plates===''?1:Number(inp.plates);
+ if(!Number.isInteger(placasRaw)||placasRaw<1)throw Error('Marque ao menos uma placa.');
+ const pesoTxt=String(inp.weight??'').trim(),compTxt=String(inp.length??'').trim();
+ const pesoInf=pesoTxt!==''?n('weight'):NaN,compInf=compTxt!==''?n('length'):NaN;
+ let gFilamento,fonte_peso;
+ if(Number.isFinite(pesoInf)&&pesoInf>0){gFilamento=pesoInf;fonte_peso='peso';}
+ else if(Number.isFinite(compInf)&&compInf>0){
+  const diam=n('diameter'),dens=n('density');
+  if(diam<=0||dens<=0)throw Error('Para calcular o peso pelo comprimento, informe diâmetro e densidade maiores que zero.');
+  gFilamento=compInf*Math.PI*(diam/2)**2/1000*dens;fonte_peso='comprimento';
+ }else throw Error('Informe o peso (g) ou o comprimento do filamento (mm).');
+ const gMesa=gFilamento+n('waste'),hMesa=n('printHours')+n('printMinutes')/60,pecas=q*placasRaw;
+ const gramas=gMesa/pecas,horas=hMesa/pecas,min_mao_obra=(n('plateHandlingMinutes')*placasRaw+n('finishMinutesPerPiece')*pecas)/pecas;
  const custo_material=gramas/1000*precoKg,custo_energia=P.potencia_w/1000*horas*P.kwh,custo_desgaste=(P.impressora_rs+P.upgrades_rs)/P.vida_util_h*horas,custo_fixos=P.fixos_mensais_rs/P.horas_produtivas_mes*horas;
- const base=custo_material+custo_energia+custo_desgaste,reserva_falha=base/(1-P.taxa_falha)-base;
- const custo_sem_mo=base+custo_fixos+reserva_falha,custo_mao_obra=P.mao_obra_rs_h*min_mao_obra/60;
- const parametros_usados={[inp.material]:precoKg};FIXOS.forEach(k=>parametros_usados[k]=P[k]);
- return {gramas,horas,min_mao_obra,quantity:q,custo_material,custo_energia,custo_desgaste,custo_fixos,reserva_falha,custo_sem_mo,custo_mao_obra,custo_com_mo:custo_sem_mo+custo_mao_obra,parametros_usados};
+ const base=custo_material+custo_energia+custo_desgaste,antes_falha=base+custo_fixos,reserva_falha=antes_falha/(1-P.taxa_falha)-antes_falha;
+ const custo_sem_mo=antes_falha+reserva_falha,custo_mao_obra=P.mao_obra_rs_h*min_mao_obra/60;
+ const parametros_usados={[inp.material]:precoKg,fonte_peso,placas:placasRaw};
+ FIXOS.forEach(k=>parametros_usados[k]=P[k]);
+ return {gramas,horas,min_mao_obra,quantity:q,placas:placasRaw,pecas,fonte_peso,gramas_filamento:gFilamento,gramas_mesa:gMesa,custo_material,custo_energia,custo_desgaste,custo_fixos,base,reserva_falha,custo_sem_mo,custo_mao_obra,custo_com_mo:custo_sem_mo+custo_mao_obra,parametros_usados,taxa_falha:P.taxa_falha};
 }
 // ==== FIM DO MOTOR ====
 
@@ -254,6 +289,7 @@ function calcPeca(inp,P){
 // ==== LEITOR DE G-CODE (roda só no navegador) ====
 const GC_HEAD=200*1024,GC_TAIL=600*1024;
 function gcNums(v){return String(v||'').split(/[,;]/).map(t=>t.trim()).map(t=>t===''?NaN:Number(t));}
+function gcSomaNum(v){if(v===undefined||v==null||String(v).trim()==='')return NaN;const n=Number(String(v).trim());if(Number.isFinite(n))return n;const xs=gcNums(v).filter(Number.isFinite);return xs.length?xs.reduce((a,b)=>a+b,0):NaN;}
 function gcList(v){return String(v||'').split(';').map(t=>t.trim().replace(/^"|"$/g,''));}
 function gcTempo(t){t=String(t||'');let s=0,ok=false;for(const [re,f] of [[/(\d+(?:\.\d+)?)\s*d/,86400],[/(\d+(?:\.\d+)?)\s*h/,3600],[/(\d+(?:\.\d+)?)\s*m(?!m)/,60],[/(\d+(?:\.\d+)?)\s*s/,1]]){const m=t.match(re);if(m){s+=Number(m[1])*f;ok=true;}}return ok?s:NaN;}
 function parseGcode(texto){
@@ -270,8 +306,10 @@ function parseGcode(texto){
  r.segundos=gcTempo(pick('total estimated time','estimated printing time (normal mode)','estimated printing time'));
  if(!Number.isFinite(r.segundos)&&kv['time']!==undefined)r.segundos=Number(kv['time']);
  r.gramas=gcNums(pick('filament used [g]'));r.mm=gcNums(pick('filament used [mm]'));r.cm3=gcNums(pick('filament used [cm3]'));
- const tg=Number(pick('total filament used [g]','total filament weight [g]'));
- r.totalGramas=Number.isFinite(tg)&&tg>0?tg:(r.gramas.some(Number.isFinite)?r.gramas.filter(Number.isFinite).reduce((a,b)=>a+b,0):NaN);
+ const tg=gcSomaNum(pick('total filament used [g]','total filament weight [g]'));
+ const somaG=r.gramas.some(Number.isFinite)?r.gramas.filter(Number.isFinite).reduce((a,b)=>a+b,0):NaN;
+ r.totalGramas=Number.isFinite(tg)&&tg>0?tg:(Number.isFinite(somaG)?somaG:NaN);
+ incluirPurga(r,pick);
  const tl=Number(pick('total filament length [mm]'));r.totalMm=Number.isFinite(tl)?tl:(r.mm.some(Number.isFinite)?r.mm.filter(Number.isFinite).reduce((a,b)=>a+b,0):NaN);
  const cura=kv['filament used'];if(cura&&!Number.isFinite(r.totalMm)){const mm=cura.split(',').map(x=>parseFloat(x)*1000).filter(Number.isFinite);if(mm.length){r.mm=mm;r.totalMm=mm.reduce((a,b)=>a+b,0);}}
  const tc=Number(pick('total filament cost'));r.custo=Number.isFinite(tc)?tc:NaN;
@@ -285,15 +323,58 @@ function parseGcode(texto){
  if(!r.usadas.length&&(Number.isFinite(r.totalGramas)||Number.isFinite(r.totalMm)))r.usadas.push({i:0,gramas:r.totalGramas,mm:r.totalMm,tipo:r.tipos[0]||'',cor:r.cores[0]||'',densidade:r.densidade[0],diametro:r.diametro[0]});
  return r;
 }
+function incluirPurga(r,pick){
+ const soma=r.gramas.some(Number.isFinite)?r.gramas.filter(Number.isFinite).reduce((a,b)=>a+b,0):NaN;
+ const wipe=gcSomaNum(pick('total filament used for wipe tower [g]','wipe tower filament used [g]'));
+ const flushLista=gcNums(pick('flush filament used [g]','filament used for purge [g]','purge filament used [g]'));
+ const flushSoma=flushLista.some(Number.isFinite)?flushLista.filter(Number.isFinite).reduce((a,b)=>a+b,0):NaN;
+ const flushTotal=gcSomaNum(pick('total flush filament used [g]','total filament used for flush [g]','total purge filament used [g]'));
+ const flush=Number.isFinite(flushSoma)&&flushSoma>0?flushSoma:(Number.isFinite(flushTotal)&&flushTotal>0?flushTotal:0);
+ r.purgaGramas=Number.isFinite(wipe)&&wipe>0?wipe:0;r.purgaSomada=false;
+ if(!(flush>0))return;
+ const tol=Math.max(0.05,flush*0.02),total=r.totalGramas;
+ const somar=()=>{if(Number.isFinite(flushSoma)&&flushLista.some(g=>g>0))flushLista.forEach((g,i)=>{if(!(g>0))return;if(!Number.isFinite(r.gramas[i]))r.gramas[i]=0;r.gramas[i]+=g;});};
+ if(Number.isFinite(soma)&&Number.isFinite(total)){
+  if(Math.abs(total-soma)<=tol){r.totalGramas=total+flush;somar();r.purgaGramas+=flush;r.purgaSomada=true;}
+  else if(Math.abs(total-(soma+flush))<=tol){somar();r.purgaGramas+=flush;}
+ }else if(!Number.isFinite(total)&&Number.isFinite(soma)){r.totalGramas=soma+flush;somar();r.purgaGramas+=flush;r.purgaSomada=true;}
+}
+function agregarPlacas(placas){
+ const sel=placas.filter(p=>p.selecionada);
+ const r={slicer:(sel.find(p=>p.slicer&&p.slicer!=='Desconhecido')||placas[0]||{}).slicer||'Desconhecido',segundos:0,totalGramas:0,totalMm:0,custo:0,usadas:[],placas,totalPlacas:placas.length,arquivoPlacas:true,purgaGramas:0,purgaSomada:false,temGramas:false,temMm:false,temTempo:false};
+ const acc=new Map();
+ for(const p of sel){
+  if(Number.isFinite(p.segundos)){r.segundos+=p.segundos;r.temTempo=true;}
+  if(Number.isFinite(p.totalGramas)){r.totalGramas+=p.totalGramas;r.temGramas=true;}
+  if(Number.isFinite(p.totalMm)){r.totalMm+=p.totalMm;r.temMm=true;}
+  if(Number.isFinite(p.custo))r.custo+=p.custo;
+  if(Number.isFinite(p.purgaGramas))r.purgaGramas+=p.purgaGramas;
+  if(p.purgaSomada)r.purgaSomada=true;
+  for(const u of (p.usadas||[])){
+   if(!acc.has(u.i))acc.set(u.i,{i:u.i,gramas:0,mm:0,tipo:u.tipo||'',cor:u.cor||'',densidade:u.densidade,diametro:u.diametro,temG:false,temMm:false});
+   const a=acc.get(u.i);
+   if(Number.isFinite(u.gramas)){a.gramas+=u.gramas;a.temG=true;}
+   if(Number.isFinite(u.mm)){a.mm+=u.mm;a.temMm=true;}
+   if(!a.tipo&&u.tipo)a.tipo=u.tipo;if(!a.cor&&u.cor)a.cor=u.cor;
+   if(!(a.densidade>0)&&u.densidade>0)a.densidade=u.densidade;if(!(a.diametro>0)&&u.diametro>0)a.diametro=u.diametro;
+  }
+ }
+ if(!r.temTempo)r.segundos=NaN;if(!r.temGramas)r.totalGramas=NaN;if(!r.temMm)r.totalMm=NaN;
+ if(!sel.some(p=>Number.isFinite(p.custo)))r.custo=NaN;
+ r.usadas=[...acc.values()].map(a=>({i:a.i,gramas:a.temG?a.gramas:NaN,mm:a.temMm?a.mm:NaN,tipo:a.tipo,cor:a.cor,densidade:a.densidade,diametro:a.diametro})).filter(u=>(u.gramas>0)||(!Number.isFinite(u.gramas)&&u.mm>0));
+ return r;
+}
 async function lerTrechos(blob){if(blob.size<=GC_HEAD+GC_TAIL)return await blob.text();
  return (await blob.slice(0,GC_HEAD).text())+'\n;[...]\n'+(await blob.slice(blob.size-GC_TAIL).text());}
 let JSZIP_P=null;
 function carregarJSZip(){if(window.JSZip)return Promise.resolve(window.JSZip);if(!JSZIP_P)JSZIP_P=new Promise((ok,err)=>{const sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';sc.onload=()=>ok(window.JSZip);sc.onerror=()=>{JSZIP_P=null;err(Error('não consegui carregar o leitor de .3mf'));};document.head.appendChild(sc);});return JSZIP_P;}
 async function lerArquivoGcode(file){
  if(/\.3mf$/i.test(file.name)){const JSZip=await carregarJSZip();const zip=await JSZip.loadAsync(file);
-  const placas=Object.keys(zip.files).filter(n=>/^Metadata\/plate_\d+\.gcode$/i.test(n)).sort((a,b)=>parseInt(a.match(/\d+/))-parseInt(b.match(/\d+/)));
-  if(!placas.length)throw Error('este .3mf não tem G-code fatiado (exporte como .gcode.3mf ou .gcode)');
-  const blob=await zip.file(placas[0]).async('blob');const r=parseGcode(await lerTrechos(blob));r.placa=placas[0].replace('Metadata/','');r.totalPlacas=placas.length;return r;}
+  const nomes=Object.keys(zip.files).filter(n=>/^Metadata\/plate_\d+\.gcode$/i.test(n)).sort((a,b)=>parseInt(a.match(/\d+/),10)-parseInt(b.match(/\d+/),10));
+  if(!nomes.length)throw Error('este .3mf não tem G-code fatiado (exporte como .gcode.3mf ou .gcode)');
+  const placas=[];
+  for(const nome of nomes){const blob=await zip.file(nome).async('blob');const r=parseGcode(await lerTrechos(blob));r.nome=nome.replace(/^Metadata\//i,'');r.selecionada=true;placas.push(r);}
+  return agregarPlacas(placas);}
  return parseGcode(await lerTrechos(file));}
 // ==== FIM DO LEITOR ====
 
@@ -331,6 +412,9 @@ $('cfgForm').onsubmit=async e=>{e.preventDefault();const msg=$('cfgMsg');try{
  const mud=[];for(const inp of $('cfgGrupos').querySelectorAll('input[data-chave]')){const k=inp.dataset.chave,v=numBR(inp.value),p=params.find(x=>x.chave===k);
   if(!Number.isFinite(v)||v<0)throw Error(`Valor inválido em "${ROTULO[k]||k}".`);if(k==='taxa_falha'&&v>=1)throw Error('A taxa de falha deve ser menor que 1 (ex.: 0,1 = 10%).');
   if((k==='vida_util_h'||k==='horas_produtivas_mes')&&v<=0)throw Error(`"${ROTULO[k]}" deve ser maior que zero.`);if(Number(p.valor)!==v)mud.push({chave:k,valor:v});}
+ const pctKeys=['taxa_marketplace_pct','taxa_cartao_pct','imposto_pct'];let somaPct=0,temPct=false;
+ for(const k of pctKeys){const inp=$('cfgGrupos').querySelector(`input[data-chave="${k}"]`);if(!inp)continue;temPct=true;const v=numBR(inp.value);if(Number.isFinite(v))somaPct+=v;}
+ if(temPct&&somaPct>=100)throw Error('A soma das taxas percentuais (marketplace, cartão e imposto) precisa ser menor que 100%.');
  const novos=[];const nm=$('novoMatNome').value.trim();if(nm){const pv=numBR($('novoMatPreco').value);if(!Number.isFinite(pv)||pv<0)throw Error('Informe o preço do novo material.');if(params.some(p=>p.chave===nm))throw Error('Esse material já existe.');novos.push({chave:nm,valor:pv});}
  if(!mud.length&&!novos.length){msg.textContent='Nada mudou.';return;}
  const resumo=mud.map(m=>`${ROTULO[m.chave]||m.chave}: ${fmtNum(params.find(p=>p.chave===m.chave).valor)} → ${fmtNum(m.valor)}`).concat(novos.map(n=>`Novo material ${n.chave}: ${fmtNum(n.valor)} R$/kg`));
@@ -339,44 +423,63 @@ $('cfgForm').onsubmit=async e=>{e.preventDefault();const msg=$('cfgMsg');try{
  if(chaveRuim(j))return sessaoExpirada();if(!j.ok)throw Error(j.erro||'Erro ao salvar.');
  if(mud.some(m=>m.chave==='markup_padrao'))localStorage.removeItem(MK_LS);$('novoMatNome').value='';$('novoMatPreco').value='';aplicarParams(j.parametros);msg.textContent='Configurações salvas.';
 }catch(err){msg.textContent='Erro: '+err.message;}finally{$('btnCfgSalvar').disabled=false;}};
-$('btnCfgRecarregar').onclick=()=>carregarParams(true);
+$('btnCfgRecarregar').onclick=()=>{TAXA_IDS.forEach(([,id])=>delete $(id).dataset.manual);carregarParams(true);};
 
 // ---- calculadora ----
 const CALC_IDS=['material','weight','length','waste','diameter','density','printHours','printMinutes','quantity','plateHandlingMinutes','finishMinutesPerPiece'];
-function entradas(){return Object.fromEntries(CALC_IDS.map(k=>[k,$(k).value]));}
-function resumoParams(P){const m=$('material').value;const it=[[`Filamento ${m}`,money(P[m]||0)+'/kg'],['Energia',money(P.kwh)+'/kWh'],['Consumo',fmtNum(P.potencia_w)+' W'],['Máquina',`${money(P.impressora_rs+P.upgrades_rs)} ÷ ${fmtNum(P.vida_util_h)} h`],['Fixos',`${money(P.fixos_mensais_rs)}/mês ÷ ${fmtNum(P.horas_produtivas_mes)} h`],['Falha',fmtNum(P.taxa_falha*100)+'%'],['Mão de obra',money(P.mao_obra_rs_h)+'/h']];
+function placasAtivas(){const ps=gcodeInfo?.r?.placas;if(!ps||!ps.length)return 1;return ps.filter(p=>p.selecionada).length;}
+function entradas(){const o=Object.fromEntries(CALC_IDS.map(k=>[k,$(k).value]));o.plates=placasAtivas();return o;}
+function taxasDaTela(){const o={};for(const [k,id] of TAXA_IDS){const raw=String($(id).value??'').trim();if(raw===''){o[k]=0;continue;}const v=numBR(raw);if(!Number.isFinite(v)||v<0)throw Error('Use somente números válidos e não negativos nas taxas de venda.');o[k]=v;}return o;}
+function aplicarTaxasSheet(P){for(const [k,id] of TAXA_IDS){const el=$(id);if(el.dataset.manual==='1')continue;const v=Number(P[k]);el.value=Number.isFinite(v)?String(v):'0';}}
+function completarParams(r){try{Object.assign(r.parametros_usados,taxasDaTela());}catch(e){}r.parametros_usados.placas=r.placas;r.parametros_usados.fonte_peso=r.fonte_peso;const gr=gcodeInfo?.r;if(gr?.arquivoPlacas&&gr.placas){r.parametros_usados.placas_total=gr.placas.length;r.parametros_usados.placas_detalhe=JSON.stringify(gr.placas.map(p=>({placa:p.nome,gramas:Number.isFinite(p.totalGramas)?+p.totalGramas.toFixed(4):null,segundos:Number.isFinite(p.segundos)?Math.round(p.segundos):null,usada:!!p.selecionada})));}if(gr?.usadas?.length)r.parametros_usados.filamentos_g=JSON.stringify(gr.usadas.map(u=>({extrusora:u.i,tipo:u.tipo||'',cor:u.cor||'',gramas:Number.isFinite(u.gramas)?+Number(u.gramas).toFixed(4):null})));if(Number.isFinite(gr?.purgaGramas)&&gr.purgaGramas>0)r.parametros_usados.purga_g=+Number(gr.purgaGramas).toFixed(4);}
+function textoPlacas(r){const n=r.placas,tot=gcodeInfo?.r?.arquivoPlacas?gcodeInfo.r.placas.length:0;if(tot&&tot!==n)return n+' de '+tot+' placas';return n===1?'1 placa':n+' placas';}
+function htmlFilamentos(usadas){if(!usadas||!usadas.length)return '';const itens=usadas.map(u=>{const nome=u.tipo||('Extrusora '+(u.i+1));const g=Number.isFinite(u.gramas)?fmtNum(+Number(u.gramas).toFixed(2))+' g':(Number.isFinite(u.mm)?fmtNum(+Number(u.mm).toFixed(0))+' mm':'—');return nome+' '+g;});return `<span class="extra">Filamentos no arquivo (informativo; o custo usa um só R$/kg sobre o peso da fonte acima): ${esc(itens.join(' · '))}</span>`;}
+function htmlFonte(r){const des=r.gramas_mesa-r.gramas_filamento;const extra=des>0?` + ${esc(fmtNum(+des.toFixed(2)))} g de desperdício`:'';const lote=r.placas>1?` Soma das ${r.placas} placas marcadas; cada peça divide por ${r.placas} × ${r.quantity}.`:(gcodeInfo?.r?.arquivoPlacas?' 1 placa no cálculo.':'');if(r.fonte_peso==='comprimento')return `Fonte do consumo: <b>comprimento do filamento</b> (${esc(fmtNum(Number($('length').value)))} mm → ${esc(fmtNum(+r.gramas_filamento.toFixed(2)))} g)${extra}. O campo de peso está vazio.${esc(lote)}`;return `Fonte do consumo: <b>peso informado</b> (${esc(fmtNum(+r.gramas_filamento.toFixed(2)))} g)${extra}.${esc(lote)}`;}
+function resumoParams(P){const m=$('material').value;const acresc=P.taxa_falha>0?(1/(1-P.taxa_falha)-1)*100:0;const it=[[`Filamento ${m}`,money(P[m]||0)+'/kg'],['Energia',money(P.kwh)+'/kWh'],['Consumo',fmtNum(P.potencia_w)+' W'],['Máquina',`${money(P.impressora_rs+P.upgrades_rs)} ÷ ${fmtNum(P.vida_util_h)} h`],['Fixos',`${money(P.fixos_mensais_rs)}/mês ÷ ${fmtNum(P.horas_produtivas_mes)} h`],['Falha',`${fmtPctCurto(P.taxa_falha*100)}% → +${fmtPctCurto(acresc)}%`],['Mão de obra',money(P.mao_obra_rs_h)+'/h']];
  $('resumoParams').innerHTML=it.map(([a,b])=>`<div>${esc(a)}<b>${esc(b)}</b></div>`).join('');}
-function render(){if(!params)return;const P=mapaParams(params);try{resumoParams(P);const r=calcPeca(entradas(),P);ultimo=r;$('error').textContent='';
+function render(){if(!params)return;const P=mapaParams(params);try{aplicarTaxasSheet(P);resumoParams(P);const r=calcPeca(entradas(),P);completarParams(r);ultimo=r;$('error').textContent='';
  $('raw').textContent=money(r.custo_sem_mo);$('withLabor').textContent=money(r.custo_com_mo);
- $('summary').textContent=`Por peça: ${fmtNum(r.gramas.toFixed(3))} g · ${fmtNum((r.horas*60).toFixed(2))} min de impressão · ${fmtNum(r.min_mao_obra.toFixed(2))} min de mão de obra`;
+ $('pesoFonte').innerHTML=htmlFonte(r);
+ const pecasTxt=r.pecas===1?'1 peça':r.pecas+' peças';
+ const fonteCurta=r.fonte_peso==='comprimento'?'fonte: comprimento do filamento':'fonte: peso informado';
+ $('summary').innerHTML=`Por peça: <b>${esc(fmtNum(+r.gramas.toFixed(3)))} g</b> · ${esc(fmtNum(+(r.horas*60).toFixed(2)))} min de impressão · ${esc(fmtNum(+r.min_mao_obra.toFixed(2)))} min de mão de obra · <b>${esc(textoPlacas(r))}</b> · ${esc(pecasTxt)} no lote · ${esc(fonteCurta)}${htmlFilamentos(gcodeInfo?.r?.usadas)}`;
  const row=(l,a,b)=>`<div class="breakdown-row"><span>${l}</span><div class="cols"><strong>${a}</strong><strong>${b}</strong></div></div>`;
  let o=row('Componente / por peça','Sem mão de obra','Com mão de obra');
- for(const [k,l] of [['custo_material','Material + desperdício'],['custo_energia','Energia'],['custo_desgaste','Desgaste da máquina'],['custo_fixos','Rateio de custos fixos'],['reserva_falha','Reserva de falhas: base ÷ (1 − f) − base']])o+=row(l,money(r[k]),money(r[k]));
+ for(const [k,l] of [['custo_material','Material + desperdício'],['custo_energia','Energia'],['custo_desgaste','Desgaste da máquina'],['custo_fixos','Rateio de custos fixos'],['reserva_falha',rotuloReserva(r.taxa_falha)]])o+=row(l,money(r[k]),money(r[k]));
  o+=row('Preparação + acabamento',money(0),money(r.custo_mao_obra))+row('Custo total por peça',money(r.custo_sem_mo),money(r.custo_com_mo));$('breakdown').innerHTML=o;renderVenda();
-}catch(e){ultimo=null;renderVenda();$('error').textContent=e.message;$('raw').textContent='—';$('withLabor').textContent='—';$('summary').textContent='';$('breakdown').innerHTML='';}}
+}catch(e){ultimo=null;renderVenda();$('error').textContent=e.message;$('raw').textContent='—';$('withLabor').textContent='—';$('summary').textContent='';$('breakdown').innerHTML='';$('pesoFonte').innerHTML=/peso|comprimento|placa/i.test(e.message)?`<b>${esc(e.message)}</b>`:'';}}
 
 // ---- G-code na calculadora ----
 let gcodeInfo=null;
 const fmtTempo=s=>{s=Math.round(s);const d=Math.floor(s/86400),h=Math.floor(s%86400/3600),m=Math.floor(s%3600/60),x=s%60;return (d?d+'d ':'')+(h||d?h+'h ':'')+m+'min'+(x&&!d?' '+x+'s':'');};
-function aplicarGcode(nome,r){const avis=[];
+function avisosLeitura(r,sugerirMaterial){const avis=[];const usadas=r.usadas||[];
  const g=r.totalGramas,mm=r.totalMm;
  if(Number.isFinite(g)&&g>0){$('weight').value=+g.toFixed(2);}
  else if(Number.isFinite(mm)&&mm>0){$('weight').value='';$('length').value=+mm.toFixed(1);avis.push('sem gramas no arquivo: usei o comprimento');}
  else avis.push('não encontrei o consumo de filamento');
- const u=r.usadas[0];if(u){if(u.diametro>0)$('diameter').value=u.diametro;if(u.densidade>0)$('density').value=u.densidade;}
+ const u=usadas[0];if(u){if(u.diametro>0)$('diameter').value=u.diametro;if(u.densidade>0)$('density').value=u.densidade;}
  if(Number.isFinite(r.segundos)&&r.segundos>0){const h=Math.floor(r.segundos/3600);$('printHours').value=h;$('printMinutes').value=+((r.segundos-h*3600)/60).toFixed(2);}else avis.push('não encontrei o tempo estimado');
- const tipos=[...new Set(r.usadas.map(x=>x.tipo).filter(Boolean))];
+ if(Number.isFinite(r.purgaGramas)&&r.purgaGramas>0)avis.push(r.purgaSomada?`purga/flush de ${fmtNum(r.purgaGramas.toFixed(2))} g somada ao peso`:`purga/torre de ${fmtNum(r.purgaGramas.toFixed(2))} g já incluída no peso`);
+ const somaF=usadas.filter(x=>Number.isFinite(x.gramas)).reduce((a,x)=>a+x.gramas,0);
+ if(Number.isFinite(g)&&usadas.length&&g-somaF>0.05)avis.push(`o peso total inclui ${fmtNum((g-somaF).toFixed(2))} g a mais que a soma por filamento (purga ou desperdício)`);
+ const tipos=[...new Set(usadas.map(x=>x.tipo).filter(Boolean))];
  if(tipos.length&&params){const mats=params.filter(isMaterial).map(p=>p.chave);const t=tipos[0];const achou=mats.find(m=>m.toLowerCase()===t.toLowerCase())||mats.find(m=>t.toLowerCase().startsWith(m.toLowerCase()));
-  if(achou)$('material').value=achou;else avis.push(`material "${t}" não está em Configurações`);if(tipos.length>1)avis.push('mais de um material: o custo usa o preço de '+(achou||$('material').value));}
- gcodeInfo={nome,r,avis};mostrarChip();render();}
-function mostrarChip(){const c=$('gcodeChip');if(!gcodeInfo){c.hidden=true;c.innerHTML='';return;}const {nome,r,avis}=gcodeInfo;
- const cores=r.usadas.length>1||r.usadas.some(u=>u.cor)?r.usadas.map(u=>`<span><span class="sw" style="background:${/^#[0-9a-f]{3,8}$/i.test(u.cor)?u.cor:'transparent'}"></span>${esc(u.tipo||'?')} ${Number.isFinite(u.gramas)?fmtNum(u.gramas.toFixed(2))+' g':fmtNum((u.mm||0).toFixed(0))+' mm'}</span>`).join(' '):'';
- c.innerHTML=`<div class="row"><span>Arquivo <b>${esc(nome)}</b>${r.placa?` <small>(${esc(r.placa)}${r.totalPlacas>1?` de ${r.totalPlacas} placas`:''})</small>`:''}</span><button type="button" class="secondary" id="gcodeLimpar">Limpar</button></div>
- <div class="row" style="margin-top:6px"><span>Fatiador <b>${esc(r.slicer)}</b></span><span>Tempo <b>${Number.isFinite(r.segundos)?fmtTempo(r.segundos):'—'}</b></span><span>Filamento <b>${Number.isFinite(r.totalGramas)?fmtNum(r.totalGramas.toFixed(2))+' g':Number.isFinite(r.totalMm)?fmtNum(r.totalMm.toFixed(0))+' mm':'—'}</b></span><span>Cores <b>${r.usadas.length||'—'}</b></span>${Number.isFinite(r.custo)?`<span>Custo do filamento no fatiador <b>${money(r.custo)}</b></span>`:''}</div>
- ${cores?`<div class="row" style="margin-top:6px">${cores}</div>`:''}${avis.length?`<div class="warn" style="margin-top:6px">${avis.map(esc).join(' · ')}</div>`:''}
- <div class="hint" style="margin-top:6px">Valores preenchidos a partir do arquivo; você pode editar qualquer campo.</div>`;
- $('gcodeLimpar').onclick=limparGcode;}
-const CALC_PADRAO={weight:'',length:'1240',waste:'0',diameter:'1.75',density:'1.24',printHours:'0',printMinutes:'10'};
+  if(sugerirMaterial){if(achou)$('material').value=achou;else avis.push(`material "${t}" não está em Configurações`);}
+  if(tipos.length>1)avis.push('mais de um filamento: o custo usa um preço único ('+(achou||$('material').value)+' R$/kg) sobre a soma das gramas');}
+ if(r.arquivoPlacas)avis.push(`${r.placas.filter(p=>p.selecionada).length} de ${r.totalPlacas} placas entram no peso e no tempo`);
+ return avis;}
+function aplicarGcode(nome,r){gcodeInfo={nome,r,avis:avisosLeitura(r,true)};mostrarChip();render();}
+function htmlPlacas(r){if(!r.arquivoPlacas||!r.placas)return '';const itens=r.placas.map((p,i)=>{const g=Number.isFinite(p.totalGramas)?fmtNum(+p.totalGramas.toFixed(2))+' g':(Number.isFinite(p.totalMm)?fmtNum(+p.totalMm.toFixed(0))+' mm':'sem consumo');const t=Number.isFinite(p.segundos)?fmtTempo(p.segundos):'sem tempo';const fils=p.usadas&&p.usadas.length?p.usadas.map(u=>`${u.tipo||('E'+(u.i+1))} ${Number.isFinite(u.gramas)?fmtNum(+Number(u.gramas).toFixed(2))+' g':''}`).join(', '):'';return `<label class="check"><input type="checkbox" data-placa="${i}" ${p.selecionada?'checked':''}> ${esc(p.nome||('Placa '+(i+1)))} — ${esc(g)} · ${esc(t)}${fils?` <small>(${esc(fils)})</small>`:''}</label>`;}).join('');const n=r.placas.filter(p=>p.selecionada).length;return `<div class="plate-list"><div class="hint">${n} de ${r.placas.length} placas no cálculo. Desmarque as que ficam de fora.</div>${itens}</div>`;}
+function mostrarChip(){const c=$('gcodeChip');if(!gcodeInfo){c.hidden=true;c.innerHTML='';return;}const {nome,r,avis}=gcodeInfo;const usadas=r.usadas||[];
+ const cores=usadas.length?usadas.map(u=>`<span><span class="sw" style="background:${/^#[0-9a-f]{3,8}$/i.test(u.cor)?u.cor:'transparent'}"></span>${esc(u.tipo||'?')} ${Number.isFinite(u.gramas)?fmtNum(+Number(u.gramas).toFixed(2))+' g':fmtNum(+Number(u.mm||0).toFixed(0))+' mm'}</span>`).join(' '):'';
+ const placaTxt=r.arquivoPlacas?` <small>(${r.placas.filter(p=>p.selecionada).length} de ${r.totalPlacas} placas)</small>`:'';
+ c.innerHTML=`<div class="row"><span>Arquivo <b>${esc(nome)}</b>${placaTxt}</span><button type="button" class="secondary" id="gcodeLimpar">Limpar</button></div>
+ <div class="row" style="margin-top:6px"><span>Fatiador <b>${esc(r.slicer)}</b></span><span>Tempo <b>${Number.isFinite(r.segundos)?fmtTempo(r.segundos):'—'}</b></span><span>Filamento <b>${Number.isFinite(r.totalGramas)?fmtNum(+r.totalGramas.toFixed(2))+' g':Number.isFinite(r.totalMm)?fmtNum(+r.totalMm.toFixed(0))+' mm':'—'}</b></span><span>Filamentos <b>${usadas.length||'—'}</b></span>${Number.isFinite(r.custo)?`<span>Custo do filamento no fatiador <b>${money(r.custo)}</b></span>`:''}</div>
+ ${cores?`<div class="row" style="margin-top:6px">${cores}</div>`:''}${htmlPlacas(r)}${avis.length?`<div class="warn" style="margin-top:6px">${avis.map(esc).join(' · ')}</div>`:''}
+ <div class="hint" style="margin-top:6px">Valores preenchidos a partir do arquivo; você pode editar qualquer campo. O preço usa um único R$/kg sobre o total de gramas.</div>`;
+ $('gcodeLimpar').onclick=limparGcode;
+ c.querySelectorAll('input[data-placa]').forEach(inp=>inp.addEventListener('change',()=>{const i=Number(inp.dataset.placa),placas=gcodeInfo.r.placas;if(!inp.checked&&placas.filter(p=>p.selecionada).length<=1){inp.checked=true;return;}placas[i].selecionada=inp.checked;const agg=agregarPlacas(placas);gcodeInfo.r=agg;gcodeInfo.avis=avisosLeitura(agg,false);mostrarChip();render();}));}
+const CALC_PADRAO={weight:'',length:'',waste:'0',diameter:'1.75',density:'1.24',printHours:'0',printMinutes:'10'};
 function limparGcode(){gcodeInfo=null;$('gcodeFile').value='';Object.entries(CALC_PADRAO).forEach(([k,v])=>$(k).value=v);mostrarChip();render();}
 async function receberArquivo(file){if(!file)return;const c=$('gcodeChip');c.hidden=false;c.innerHTML='Lendo '+esc(file.name)+'...';
  try{const r=await lerArquivoGcode(file);aplicarGcode(file.name,r);}catch(e){gcodeInfo=null;c.innerHTML=`<span class="warn">Não consegui ler ${esc(file.name)}: ${esc(e.message)}</span>`;}}
@@ -388,19 +491,21 @@ dz.addEventListener('drop',e=>receberArquivo(e.dataTransfer.files[0]));
 // ---- preço de venda (markup) ----
 const MK_LS='lumiMarkup';
 function markup(){const v=numBR($('markupPct').value);return Number.isFinite(v)&&v>=0?v:NaN;}
-function precoCom(r,m){return r.custo_com_mo*(1+m/100);}
+function precoCom(r,m){return precoDeVenda(r.custo_com_mo,m,taxasDaTela()).preco;}
 function renderVenda(){const m=markup(),r=ultimo;if(!r||!Number.isFinite(m)){$('precoVenda').textContent='—';$('precoSemMo').textContent=Number.isFinite(m)?'':'Informe um markup válido (0 ou mais).';$('vendaInfo').innerHTML='';return;}
- const pv=precoCom(r,m),ps=r.custo_sem_mo*(1+m/100),margem=m/(100+m)*100;
- $('precoVenda').textContent=money(pv);$('precoSemMo').textContent=`Sem mão de obra: ${money(ps)}`;
+ let taxas,com,sem;try{taxas=taxasDaTela();com=precoDeVenda(r.custo_com_mo,m,taxas);sem=precoDeVenda(r.custo_sem_mo,m,taxas);}catch(e){$('precoVenda').textContent='—';$('precoSemMo').textContent=e.message;$('vendaInfo').innerHTML='';return;}
+ const lucroSemMo=com.antes-r.custo_sem_mo;
+ $('precoVenda').textContent=money(com.preco);$('precoSemMo').textContent=`Sem mão de obra: ${money(sem.preco)} · Antes das taxas: ${money(com.antes)}`;
  const row=(l,a)=>`<div class="breakdown-row"><span>${l}</span><div class="cols"><strong>${a}</strong></div></div>`;
- $('vendaInfo').innerHTML=row('Markup sobre o custo',fmtNum(m)+'%')+row('Margem sobre a venda',fmtNum(margem.toFixed(1))+'%')+row('Lucro por peça (sobre o custo com mão de obra)',money(pv-r.custo_com_mo))+row('Lucro por peça se não contar mão de obra',money(pv-r.custo_sem_mo));
- const sp=$('sPreco');if(!sp.dataset.manual)sp.value=(Math.round(pv*100)/100).toFixed(2);}
+ $('vendaInfo').innerHTML=row('Markup sobre o custo',fmtNum(m)+'%')+row('Preço antes das taxas',money(com.antes))+row('Embalagem',money(com.embalagem_rs))+row('Taxa fixa de venda',money(com.taxa_fixa_venda_rs))+row(`Taxas sobre o preço (marketplace ${fmtNum(com.taxa_marketplace_pct)}% + cartão ${fmtNum(com.taxa_cartao_pct)}% + imposto ${fmtNum(com.imposto_pct)}%)`,money(com.taxas_pct_rs))+row('Preço final',money(com.preco))+row('Margem efetiva sobre a venda',fmtNum(com.margem.toFixed(1))+'%')+row('Lucro por peça',money(com.lucro))+row('Lucro por peça se não contar mão de obra',money(lucroSemMo));
+ const sp=$('sPreco');if(!sp.dataset.manual)sp.value=(Math.round(com.preco*100)/100).toFixed(2);}
 function setMarkup(v,salvar){$('markupPct').value=v;const n=numBR(v);if(Number.isFinite(n))$('markupRange').value=Math.min(300,Math.max(0,n));if(salvar&&Number.isFinite(n)&&n>=0)localStorage.setItem(MK_LS,String(n));renderVenda();}
 $('markupRange').addEventListener('input',e=>setMarkup(e.target.value,true));
 $('markupPct').addEventListener('input',e=>setMarkup(e.target.value,true));
 $('sPreco').addEventListener('input',e=>{e.target.dataset.manual=e.target.value===''?'':'1';if(e.target.value==='')renderVenda();});
 function markupInicial(){const ls=localStorage.getItem(MK_LS);if(ls!==null)return ls;const P=params?mapaParams(params):{};return Number.isFinite(P.markup_padrao)?String(P.markup_padrao):'30';}
 CALC_IDS.forEach(k=>{$(k).addEventListener('input',render);$(k).addEventListener('change',render);});
+TAXA_IDS.forEach(([,id])=>{$(id).addEventListener('input',e=>{e.target.dataset.manual='1';render();});});
 
 function precoSalvo(){const m=markup();if(!Number.isFinite(m))throw Error('Informe um markup válido (0 ou mais) antes de salvar.');
  const manual=$('sPreco').dataset.manual==='1';
@@ -424,7 +529,8 @@ const DINHEIRO=new Set(['custo_material','custo_energia','custo_desgaste','custo
 function celNum(v){if(typeof v==='number')return Number.isFinite(v)?v:NaN;if(v===''||v==null)return NaN;return numBR(v);}
 function markupPadrao(){const P=params?mapaParams(params):{};return Number.isFinite(P.markup_padrao)&&P.markup_padrao>=0?P.markup_padrao:30;}
 function infoPeca(p){if(p.markup_pct===''||p.markup_pct==null)return {markup:markupPadrao(),salvo:false};const n=celNum(p.markup_pct);if(!Number.isFinite(n)||n<0)return {markup:markupPadrao(),salvo:false};return {markup:n,salvo:true};}
-function precoPeca(p,info){const custo=celNum(p.custo_com_mo);if(info.salvo){const pv=celNum(p.preco_venda);if(Number.isFinite(pv))return pv;}return Number.isFinite(custo)?custo*(1+info.markup/100):NaN;}
+function paramsPeca(p){let o=p?.parametros_usados;if(typeof o==='string'){try{o=JSON.parse(o);}catch(e){o={};}}return o&&typeof o==='object'?o:{};}
+function precoPeca(p,info){const custo=celNum(p.custo_com_mo);if(info.salvo){const pv=celNum(p.preco_venda);if(Number.isFinite(pv))return pv;}if(!Number.isFinite(custo))return NaN;try{return precoDeVenda(custo,info.markup,taxasDe(paramsPeca(p))).preco;}catch(e){return custo*(1+info.markup/100);}}
 function margemDe(m){return m/(100+m)*100;}
 async function carregar(){$('listMsg').textContent='Carregando...';try{const j=await api({acao:'listar'});if(chaveRuim(j))return sessaoExpirada();if(!j.ok)throw Error(j.erro||'Erro');pecas=j.pecas||[];$('listMsg').textContent='';mostrar();}catch(e){$('listMsg').textContent='Não foi possível carregar: '+e.message;}}
 function fmt(v){const n=celNum(v);return Number.isFinite(n)?money(n):'—';}
@@ -460,11 +566,12 @@ function pintarCampos(p){
 }
 function atualizarModal(){const p=pecaAberta;if(!p)return;const m=numBR($('modalMarkup').value),custo=celNum(p.custo_com_mo);
  if(!Number.isFinite(m)||m<0||!Number.isFinite(custo)){$('modalPreco').textContent='—';$('modalVenda').innerHTML=!Number.isFinite(custo)?'<p class="hint err">Esta peça não tem custo com mão de obra salvo.</p>':'';$('modalSalvar').disabled=true;return;}
- const pv=custo*(1+m/100),margem=margemDe(m);
+ let com;try{com=precoDeVenda(custo,m,taxasDe(paramsPeca(p)));}catch(e){$('modalPreco').textContent='—';$('modalVenda').innerHTML=`<p class="hint err">${esc(e.message)}</p>`;$('modalSalvar').disabled=true;return;}
  const row=(l,a)=>`<div class="breakdown-row"><span>${l}</span><div class="cols"><strong>${a}</strong></div></div>`;
- $('modalPreco').textContent=money(pv);
- $('modalVenda').innerHTML=row('Custo com mão de obra',money(custo))+row('Markup sobre o custo',fmtNum(m)+'%')+row('Margem sobre a venda',fmtNum(+margem.toFixed(1))+'%')+row('Lucro por peça',money(pv-custo));
- $('modalSalvar').disabled=false;}
+ let html=row('Custo com mão de obra',money(custo))+row('Markup sobre o custo',fmtNum(m)+'%');
+ if(com.taxas_rs>0||com.pct>0)html+=row('Preço antes das taxas',money(com.antes))+row('Taxas e embalagem',money(com.taxas_rs));
+ html+=row('Margem efetiva sobre a venda',fmtNum(+com.margem.toFixed(1))+'%')+row('Lucro por peça',money(com.lucro));
+ $('modalPreco').textContent=money(com.preco);$('modalVenda').innerHTML=html;$('modalSalvar').disabled=false;}
 function abrirPeca(id){const p=pecas.find(x=>String(x.id)===String(id));if(!p)return;pecaAberta=p;focoAntes=document.activeElement;
  const info=infoPeca(p);$('modalTitulo').textContent=p.nome||'Peça';pintarCampos(p);
  $('modalAviso').textContent=info.salvo?'':`Sem markup salvo nesta peça. O campo começa no markup padrão (${fmtNum(info.markup)}%) aplicado sobre o custo com mão de obra. Salvar grava o markup e o preço nesta linha.`;
@@ -474,7 +581,7 @@ async function salvarMarkup(){const p=pecaAberta;if(!p)return;const msg=$('modal
  const m=numBR($('modalMarkup').value),custo=celNum(p.custo_com_mo);
  if(!Number.isFinite(m)||m<0)throw Error('Informe um markup válido (0 ou mais).');
  if(!Number.isFinite(custo))throw Error('Esta peça não tem custo com mão de obra salvo.');
- const preco=Math.round(custo*(1+m/100)*100)/100;
+ const preco=Math.round(precoDeVenda(custo,m,taxasDe(paramsPeca(p))).preco*100)/100;
  $('modalSalvar').disabled=true;msg.textContent='Salvando...';
  const j=await api({acao:'atualizar_markup',id:p.id,markup_pct:m,preco_venda:preco});
  if(chaveRuim(j))return sessaoExpirada();if(!j.ok)throw Error(j.erro||'Erro ao salvar.');
